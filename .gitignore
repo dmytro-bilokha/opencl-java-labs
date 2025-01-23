@@ -1,0 +1,41 @@
+*.class
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.ear
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+#Compilation results
+target/
+
+#Intellij files
+.idea/
+*.iml
+#Codelite workspace files
+.codelite/
+**/*.workspace
+**/.tern-project
+#Gradle files
+.gradle/
+#Grade builds
+build/
+#Generated sources
+**/src/generated/
+#Swaps
+*.swp
+
+#Front-end stuff
+node_modules
+.DS_Store
+dist
+Thumbs.db
+
+#VSCode stuff
+.vscode
+

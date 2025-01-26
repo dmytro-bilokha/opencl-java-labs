@@ -1,4 +1,4 @@
-package com.dmytrobilokha;
+package com.dmytrobilokha.opencl;
 
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;

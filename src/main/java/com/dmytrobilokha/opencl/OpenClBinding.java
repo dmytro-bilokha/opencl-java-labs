@@ -1,4 +1,4 @@
-package com.dmytrobilokha;
+package com.dmytrobilokha.opencl;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -6,6 +6,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SymbolLookup;
 import java.lang.foreign.ValueLayout;
 import java.lang.invoke.MethodHandle;
+import java.util.Arrays;
 import java.util.Optional;
 
 public final class OpenClBinding {
@@ -18,7 +19,7 @@ public final class OpenClBinding {
         try {
             System.load(libPath);
         } catch (RuntimeException e) {
-            throw new IllegalStateException("Failed to load open CL lib from path: " + libPath, e);
+            throw new IllegalStateException("Failed to load OpenCL lib from path: " + libPath, e);
         }
     }
 
@@ -244,6 +245,27 @@ public final class OpenClBinding {
                     ENQUEUE_READ_BUFFER_DESC
             );
 
+    private static final MemorySegment ENQUEUE_WRITE_BUFFER_MEMSEG =
+            lookupSymbol("clEnqueueWriteBuffer");
+    private static final FunctionDescriptor ENQUEUE_WRITE_BUFFER_DESC =
+            FunctionDescriptor.of(
+                    ValueLayout.JAVA_INT,       // Return type: cl_int
+                    ValueLayout.ADDRESS,        // cl_command_queue command_queue
+                    ValueLayout.ADDRESS,        // cl_mem buffer
+                    ValueLayout.JAVA_INT,       // cl_bool blocking_write
+                    ValueLayout.JAVA_LONG,      // size_t offset
+                    ValueLayout.JAVA_LONG,      // size_t size
+                    ValueLayout.ADDRESS,        // void* ptr
+                    ValueLayout.JAVA_INT,       // cl_uint num_events_in_wait_list
+                    ValueLayout.ADDRESS,        // const cl_event* event_wait_list
+                    ValueLayout.ADDRESS         // cl_event* event
+            );
+    public static final MethodHandle ENQUEUE_WRITE_BUFFER_HANDLE =
+            linker.downcallHandle(
+                    ENQUEUE_WRITE_BUFFER_MEMSEG,
+                    ENQUEUE_WRITE_BUFFER_DESC
+            );
+
     private static final MemorySegment RELEASE_MEM_OBJECT_MEMSEG =
             lookupSymbol("clReleaseMemObject");
     private static final FunctionDescriptor RELEASE_MEM_OBJECT_DESC =
@@ -331,4 +353,34 @@ public final class OpenClBinding {
         throw new IllegalStateException("Lookup failed for symbol: " + symbol);
     }
 
+    static MemorySegment invokeMemSegClMethod(
+            MemorySegment errorCodeMemSeg, MethodHandle methodHandle, Object... arguments) {
+        MemorySegment returnValue;
+        try {
+            returnValue = (MemorySegment) methodHandle.invokeWithArguments(arguments);
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to call " + methodHandle + " with parameters: "
+                    + Arrays.toString(arguments), e);
+        }
+        int errorCode = errorCodeMemSeg.get(ValueLayout.JAVA_INT, 0);
+        if (!ClReturnValue.CL_SUCCESS.matches(errorCode)) {
+            throw new IllegalStateException(
+                    "Error " + ClReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
+        }
+        return returnValue;
+    }
+
+    static void invokeClMethod(MethodHandle methodHandle, Object... arguments) {
+        int returnValue;
+        try {
+            returnValue = (int) methodHandle.invokeWithArguments(arguments);
+        } catch (Throwable e) {
+            throw new RuntimeException("Failed to call " + methodHandle + " with parameters: "
+                    + Arrays.toString(arguments), e);
+        }
+        if (!ClReturnValue.CL_SUCCESS.matches(returnValue)) {
+            throw new IllegalStateException(
+                    "Error " + ClReturnValue.convertToString(returnValue) + " while calling " + methodHandle);
+        }
+    }
 }

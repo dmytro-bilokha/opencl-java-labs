@@ -1,5 +1,7 @@
 package com.dmytrobilokha;
 
+import com.dmytrobilokha.opencl.OpenClConnector;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.ValueLayout;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package com.dmytrobilokha;
+package com.dmytrobilokha.opencl;
 
 public final class ClParamValue {
 

@@ -35,6 +35,23 @@ public final class MethodBinding {
     public static final MethodHandle GET_PLATFORM_IDS_HANDLE = linker.downcallHandle(
             GET_PLATFORM_IDS_MEMSEG, GET_PLATFORM_IDS_DESC);
 
+    private static final MemorySegment GET_PLATFORM_INFO_MEMSEG =
+            lookupSymbol("clGetPlatformInfo");
+    private static final FunctionDescriptor GET_PLATFORM_INFO_DESC =
+            FunctionDescriptor.of(
+                    ValueLayout.JAVA_INT,       // Return type: cl_int
+                    ValueLayout.ADDRESS,        // cl_platform_id platform
+                    ValueLayout.JAVA_INT,       // cl_platform_info param_name
+                    ValueLayout.JAVA_LONG,      // size_t param_value_size
+                    ValueLayout.ADDRESS,        // void* param_value
+                    ValueLayout.ADDRESS         // size_t* param_value_size_ret
+            );
+    public static final MethodHandle GET_PLATFORM_INFO_HANDLE =
+            linker.downcallHandle(
+                    GET_PLATFORM_INFO_MEMSEG,
+                    GET_PLATFORM_INFO_DESC
+            );
+
     private static final MemorySegment GET_DEVICE_IDS_MEMSEG = lookupSymbol("clGetDeviceIDs");
     private static final FunctionDescriptor GET_DEVICE_IDS_DESC = FunctionDescriptor.of(
             ValueLayout.JAVA_INT,         // Return type: cl_int

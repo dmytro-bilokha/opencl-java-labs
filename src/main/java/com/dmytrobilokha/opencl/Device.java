@@ -15,6 +15,7 @@ public class Device {
     private final SegmentAllocator allocator;
     private final MemorySegment contextMemSeg;
     private final MemorySegment deviceIdMemSeg;
+    private final MemorySegment errorCodeMemSeg;
     private final String name;
     private final MemorySegment commandQueueMemSeg;
 
@@ -22,6 +23,7 @@ public class Device {
         this.allocator = allocator;
         this.contextMemSeg = contextMemSeg;
         this.deviceIdMemSeg = deviceIdMemSeg;
+        this.errorCodeMemSeg = allocator.allocate(ValueLayout.JAVA_INT);
         this.name = queryDeviceName();
         this.commandQueueMemSeg = createCommandQueue();
     }
@@ -109,7 +111,6 @@ public class Device {
     }
 
     private MemorySegment createCommandQueue() {
-        var errorCodeMemSeg = allocator.allocate(ValueLayout.JAVA_INT);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,

@@ -20,15 +20,12 @@ public class Platform implements AutoCloseable {
     private final MemorySegment programMemSeg;
     private final List<Kernel> kernels;
     private final List<PlatformBuffer> buffers;
+    private final MemorySegment errorCodeMemSeg;
 
     /*
     TODO:
-    - implement static method initAll(Arena) or init(name)
-    - make platform auto-closable, to release all resources and arena
     - add bindings for clGetPlatformInfo to populate the name
-    - add list of devices
     - query device for important params: local memory, preferable local size, etc.
-    - by default create context, build program for all devices
      */
 
     public static Platform initDefault(String programSource) {
@@ -49,6 +46,7 @@ public class Platform implements AutoCloseable {
     private Platform(Arena arena, MemorySegment platformIdMemSeg, int numberOfPlatformDevices, String programSource) {
         this.arena = arena;
         this.platformIdMemSeg = platformIdMemSeg;
+        this.errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         this.deviceIdsMemSeg = queryPlatformDeviceIds(numberOfPlatformDevices);
         this.contextMemSeg = createContext(numberOfPlatformDevices);
         var devicesList = new ArrayList<Device>();
@@ -64,7 +62,6 @@ public class Platform implements AutoCloseable {
     }
 
     public Kernel createKernel(String functionName) {
-        var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         var kernelMemSeg = MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_KERNEL_HANDLE,
@@ -89,7 +86,6 @@ public class Platform implements AutoCloseable {
     }
 
     public PlatformBuffer createBuffer(long byteSize, DeviceMemoryAccess deviceAccess, HostMemoryAccess hostAccess) {
-        var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         var bufferMemSeg = MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_BUFFER_HANDLE,
@@ -116,7 +112,6 @@ public class Platform implements AutoCloseable {
     }
 
     private MemorySegment createContext(int numberOfDevices) {
-        var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_CONTEXT_HANDLE,
@@ -129,7 +124,6 @@ public class Platform implements AutoCloseable {
     }
 
     private MemorySegment createProgram(String sourceCode) {
-        var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         var sourceCodeMemSeg = arena.allocateFrom(sourceCode);
         var pointerToSourceCodeMemSeg = arena.allocate(ValueLayout.ADDRESS);
         pointerToSourceCodeMemSeg.set(ValueLayout.ADDRESS, 0, sourceCodeMemSeg);

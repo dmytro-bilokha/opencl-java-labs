@@ -1,6 +1,6 @@
-package com.dmytrobilokha.opencl;
+package com.dmytrobilokha.opencl.binding;
 
-public enum ClReturnValue {
+public enum ReturnValue {
 
     CL_SUCCESS(0),
     CL_DEVICE_NOT_FOUND(-1),
@@ -86,12 +86,12 @@ public enum ClReturnValue {
 
     private final int intValue;
 
-    ClReturnValue(int intValue) {
+    ReturnValue(int intValue) {
         this.intValue = intValue;
     }
 
-    public static ClReturnValue fromIntValue(int value) {
-        for (var item : ClReturnValue.values()) {
+    public static ReturnValue fromIntValue(int value) {
+        for (var item : ReturnValue.values()) {
             if (item.intValue == value) {
                 return item;
             }
@@ -100,7 +100,7 @@ public enum ClReturnValue {
     }
 
     public static String convertToString(int value) {
-        for (var item : ClReturnValue.values()) {
+        for (var item : ReturnValue.values()) {
             if (item.intValue == value) {
                 return item.name();
             }

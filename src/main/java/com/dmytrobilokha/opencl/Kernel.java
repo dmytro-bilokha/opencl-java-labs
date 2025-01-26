@@ -12,7 +12,7 @@ public class Kernel {
         this.kernelMemSeg = kernelMemSeg;
     }
 
-    public MemorySegment getKernelMemSeg() {
+    MemorySegment getKernelMemSeg() {
         return kernelMemSeg;
     }
 }

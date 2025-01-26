@@ -1,9 +1,11 @@
 package com.dmytrobilokha.opencl;
 
+import com.dmytrobilokha.opencl.binding.ParamValue;
+
 public enum DeviceMemoryAccess {
-    READ_ONLY(ClParamValue.CL_MEM_READ_ONLY),
-    WRITE_ONLY(ClParamValue.CL_MEM_WRITE_ONLY),
-    READ_WRITE(ClParamValue.CL_MEM_READ_WRITE);
+    READ_ONLY(ParamValue.CL_MEM_READ_ONLY),
+    WRITE_ONLY(ParamValue.CL_MEM_WRITE_ONLY),
+    READ_WRITE(ParamValue.CL_MEM_READ_WRITE);
 
     private final long paramValue;
 
@@ -11,7 +13,7 @@ public enum DeviceMemoryAccess {
         this.paramValue = paramValue;
     }
 
-    public long getParamValue() {
+    long getParamValue() {
         return paramValue;
     }
 

@@ -1,6 +1,6 @@
-package com.dmytrobilokha.opencl;
+package com.dmytrobilokha.opencl.binding;
 
-public final class ClParamValue {
+public final class ParamValue {
 
     public static final int CL_DEVICE_TYPE_DEFAULT = (1 << 0);
     public static final int CL_DEVICE_TYPE_CPU = (1 << 1);
@@ -151,7 +151,7 @@ public final class ClParamValue {
     public static final long CL_QUEUE_DEVICE_DEFAULT = 0x1095;
     public static final long CL_QUEUE_PROPERTIES_ARRAY = 0x1098;
 
-    private ClParamValue() {
+    private ParamValue() {
         // no instance
     }
 }

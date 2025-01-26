@@ -1,10 +1,14 @@
 package com.dmytrobilokha.opencl;
 
+import com.dmytrobilokha.opencl.binding.ParamValue;
+import com.dmytrobilokha.opencl.binding.MethodBinding;
+import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
+
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
 
-public class ClDevice {
+public class Device {
 
     private static final long DEVICE_NAME_LIMIT = 250;
 
@@ -14,7 +18,7 @@ public class ClDevice {
     private final String name;
     private final MemorySegment commandQueueMemSeg;
 
-    public ClDevice(SegmentAllocator allocator, MemorySegment contextMemSeg, MemorySegment deviceIdMemSeg) {
+    public Device(SegmentAllocator allocator, MemorySegment contextMemSeg, MemorySegment deviceIdMemSeg) {
         this.allocator = allocator;
         this.contextMemSeg = contextMemSeg;
         this.deviceIdMemSeg = deviceIdMemSeg;
@@ -30,22 +34,22 @@ public class ClDevice {
         releaseCommandQueue();
     }
 
-    public void enqueueWriteBuffer(ClBuffer buffer, float[] data) {
+    public void enqueueWriteBuffer(PlatformBuffer buffer, float[] data) {
         long dataSize = data.length * ValueLayout.JAVA_FLOAT.byteSize();
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
             || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
-            throw new IllegalArgumentException(
+            throw new OpenClRuntimeException(
                     "Unable to write data to the buffer with no write access for host: " + buffer);
         }
         if (buffer.getByteSize() < dataSize) {
-            throw new IllegalArgumentException("Provided buffer is too small: " + buffer);
+            throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
         }
         var inputMemSeg = allocator.allocateFrom(ValueLayout.JAVA_FLOAT, data);
-        OpenClBinding.invokeClMethod(
-                OpenClBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
                 commandQueueMemSeg,
                 buffer.getBufferMemSeg(),
-                ClParamValue.CL_TRUE,
+                ParamValue.CL_TRUE,
                 0L,
                 dataSize,
                 inputMemSeg,
@@ -55,20 +59,20 @@ public class ClDevice {
         );
     }
 
-    public float[] enqueueReadBuffer(ClBuffer clBuffer) {
-        if (clBuffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
-            || clBuffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
-            throw new IllegalArgumentException("Unable to read data from the buffer with no read access for host: "
-                + clBuffer);
+    public float[] enqueueReadBuffer(PlatformBuffer buffer) {
+        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
+            || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
+            throw new OpenClRuntimeException("Unable to read data from the buffer with no read access for host: "
+                + buffer);
         }
-        var resultMemSeg = allocator.allocate(clBuffer.getByteSize());
-        OpenClBinding.invokeClMethod(
-                OpenClBinding.ENQUEUE_READ_BUFFER_HANDLE,
+        var resultMemSeg = allocator.allocate(buffer.getByteSize());
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
                 commandQueueMemSeg,
-                clBuffer.getBufferMemSeg(),
-                ClParamValue.CL_TRUE,
+                buffer.getBufferMemSeg(),
+                ParamValue.CL_TRUE,
                 0L,
-                clBuffer.getByteSize(),
+                buffer.getByteSize(),
                 resultMemSeg,
                 0,
                 MemorySegment.NULL,
@@ -78,8 +82,8 @@ public class ClDevice {
 
     public void enqueueNdRangeKernel(Kernel kernel, long workSize) {
         var workSizeMemSeg = allocator.allocateFrom(ValueLayout.JAVA_LONG, workSize);
-        OpenClBinding.invokeClMethod(
-                OpenClBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
                 kernel.getKernelMemSeg(),
                 1,
@@ -93,10 +97,10 @@ public class ClDevice {
 
     private String queryDeviceName() {
         var deviceNameMemSeg = allocator.allocate(DEVICE_NAME_LIMIT);
-        OpenClBinding.invokeClMethod(
-                OpenClBinding.GET_DEVICE_INFO_HANDLE,
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_DEVICE_INFO_HANDLE,
                 deviceIdMemSeg,
-                ClParamValue.CL_DEVICE_NAME,
+                ParamValue.CL_DEVICE_NAME,
                 DEVICE_NAME_LIMIT,
                 deviceNameMemSeg,
                 MemorySegment.NULL
@@ -106,9 +110,9 @@ public class ClDevice {
 
     private MemorySegment createCommandQueue() {
         var errorCodeMemSeg = allocator.allocate(ValueLayout.JAVA_INT);
-        return OpenClBinding.invokeMemSegClMethod(
+        return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
+                MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
                 contextMemSeg,
                 deviceIdMemSeg,
                 MemorySegment.NULL, //No queue properties for now
@@ -116,7 +120,7 @@ public class ClDevice {
     }
 
     private void releaseCommandQueue() {
-        OpenClBinding.invokeClMethod(OpenClBinding.RELEASE_COMMAND_QUEUE_HANDLE, commandQueueMemSeg);
+        MethodBinding.invokeClMethod(MethodBinding.RELEASE_COMMAND_QUEUE_HANDLE, commandQueueMemSeg);
     }
 
 }

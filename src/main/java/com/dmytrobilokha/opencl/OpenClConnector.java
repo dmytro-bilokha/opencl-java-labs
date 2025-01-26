@@ -1,5 +1,9 @@
 package com.dmytrobilokha.opencl;
 
+import com.dmytrobilokha.opencl.binding.ParamValue;
+import com.dmytrobilokha.opencl.binding.ReturnValue;
+import com.dmytrobilokha.opencl.binding.MethodBinding;
+
 import java.lang.foreign.Arena;
 import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
@@ -18,22 +22,22 @@ public class OpenClConnector {
 
     public MemorySegment getDefaultPlatformDeviceIds() {
         var numPlatformsMemSeg = arena.allocate(ValueLayout.JAVA_INT);
-        invokeClMethod(OpenClBinding.GET_PLATFORM_IDS_HANDLE, 0, MemorySegment.NULL, numPlatformsMemSeg);
+        invokeClMethod(MethodBinding.GET_PLATFORM_IDS_HANDLE, 0, MemorySegment.NULL, numPlatformsMemSeg);
         int numPlatforms = numPlatformsMemSeg.get(ValueLayout.JAVA_INT, 0);
         if (numPlatforms < 1) {
             throw new IllegalStateException("No OpenCL platforms found, unable to continue");
         }
         var platformIdsMemSeg = arena.allocate(ValueLayout.ADDRESS, numPlatforms);
         invokeClMethod(
-                OpenClBinding.GET_PLATFORM_IDS_HANDLE,
+                MethodBinding.GET_PLATFORM_IDS_HANDLE,
                 numPlatforms,
                 platformIdsMemSeg,
                 MemorySegment.NULL);
         var defaultPlatform = platformIdsMemSeg.getAtIndex(ValueLayout.ADDRESS, 0);
         var numDevicesMemSeg = arena.allocate(ValueLayout.JAVA_INT);
-        invokeClMethod(OpenClBinding.GET_DEVICE_IDS_HANDLE,
+        invokeClMethod(MethodBinding.GET_DEVICE_IDS_HANDLE,
                 defaultPlatform,
-                ClParamValue.CL_DEVICE_TYPE_ALL,
+                ParamValue.CL_DEVICE_TYPE_ALL,
                 0,
                 MemorySegment.NULL,
                 numDevicesMemSeg);
@@ -43,9 +47,9 @@ public class OpenClConnector {
         }
         var deviceIdsMemSeg = arena.allocate(ValueLayout.ADDRESS, numDevices);
         invokeClMethod(
-                OpenClBinding.GET_DEVICE_IDS_HANDLE,
+                MethodBinding.GET_DEVICE_IDS_HANDLE,
                 defaultPlatform,
-                ClParamValue.CL_DEVICE_TYPE_ALL,
+                ParamValue.CL_DEVICE_TYPE_ALL,
                 numDevices,
                 deviceIdsMemSeg,
                 MemorySegment.NULL);
@@ -55,9 +59,9 @@ public class OpenClConnector {
     public String getDeviceName(MemorySegment deviceIdMemSeg) {
         var deviceNameMemSeg = arena.allocate(DEVICE_NAME_LIMIT);
         invokeClMethod(
-                OpenClBinding.GET_DEVICE_INFO_HANDLE,
+                MethodBinding.GET_DEVICE_INFO_HANDLE,
                 deviceIdMemSeg,
-                ClParamValue.CL_DEVICE_NAME,
+                ParamValue.CL_DEVICE_NAME,
                 DEVICE_NAME_LIMIT,
                 deviceNameMemSeg,
                 MemorySegment.NULL
@@ -69,7 +73,7 @@ public class OpenClConnector {
         var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_CONTEXT_HANDLE,
+                MethodBinding.CREATE_CONTEXT_HANDLE,
                 MemorySegment.NULL,
                 1,
                 deviceIdsMemSeg,
@@ -79,7 +83,7 @@ public class OpenClConnector {
     }
 
     public void releaseContext(MemorySegment contextMemSeg) {
-        invokeClMethod(OpenClBinding.RELEASE_CONTEXT_HANDLE, contextMemSeg);
+        invokeClMethod(MethodBinding.RELEASE_CONTEXT_HANDLE, contextMemSeg);
     }
 
     public MemorySegment createInputBufferOfFloats(MemorySegment contextMemSeg, float[] inputValues) {
@@ -87,9 +91,9 @@ public class OpenClConnector {
         var inputMemSeg = arena.allocateFrom(ValueLayout.JAVA_FLOAT, inputValues);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_BUFFER_HANDLE,
+                MethodBinding.CREATE_BUFFER_HANDLE,
                 contextMemSeg,
-                ClParamValue.CL_MEM_READ_ONLY | ClParamValue.CL_MEM_COPY_HOST_PTR,
+                ParamValue.CL_MEM_READ_ONLY | ParamValue.CL_MEM_COPY_HOST_PTR,
                 inputMemSeg.byteSize(),
                 inputMemSeg,
                 errorCodeMemSeg);
@@ -99,9 +103,9 @@ public class OpenClConnector {
         var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_BUFFER_HANDLE,
+                MethodBinding.CREATE_BUFFER_HANDLE,
                 contextMemSeg,
-                ClParamValue.CL_MEM_WRITE_ONLY,
+                ParamValue.CL_MEM_WRITE_ONLY,
                 byteSize,
                 MemorySegment.NULL,
                 errorCodeMemSeg);
@@ -111,7 +115,7 @@ public class OpenClConnector {
         var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
+                MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
                 contextMemSeg,
                 deviceIdMemSeg,
                 MemorySegment.NULL, //No queue properties for now
@@ -125,7 +129,7 @@ public class OpenClConnector {
         pointerToSourceCodeMemSeg.set(ValueLayout.ADDRESS, 0, sourceCodeMemSeg);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_PROGRAM_WITH_SOURCE_HANDLE,
+                MethodBinding.CREATE_PROGRAM_WITH_SOURCE_HANDLE,
                 contextMemSeg,
                 1,
                 pointerToSourceCodeMemSeg,
@@ -135,7 +139,7 @@ public class OpenClConnector {
 
     public void buildProgram(MemorySegment programMemSeg, MemorySegment deviceIdsMemSeg) {
         invokeClMethod(
-                OpenClBinding.BUILD_PROGRAM_HANDLE,
+                MethodBinding.BUILD_PROGRAM_HANDLE,
                 programMemSeg,
                 1,
                 deviceIdsMemSeg,
@@ -149,7 +153,7 @@ public class OpenClConnector {
         var errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         return invokeMemSegClMethod(
                 errorCodeMemSeg,
-                OpenClBinding.CREATE_KERNEL_HANDLE,
+                MethodBinding.CREATE_KERNEL_HANDLE,
                 programMemSeg,
                 arena.allocateFrom(entryMethodName),
                 errorCodeMemSeg
@@ -160,7 +164,7 @@ public class OpenClConnector {
         var argumentPointerMemSeg = arena.allocate(ValueLayout.ADDRESS);
         argumentPointerMemSeg.set(ValueLayout.ADDRESS, 0, argumentMemSeg);
         invokeClMethod(
-                OpenClBinding.SET_KERNEL_ARG_HANDLE,
+                MethodBinding.SET_KERNEL_ARG_HANDLE,
                 kernelMemSeg,
                 argumentIndex,
                 argumentPointerMemSeg.byteSize(),
@@ -170,7 +174,7 @@ public class OpenClConnector {
     public void enqueueNdRangeKernel(MemorySegment commandQueueMemSeg, MemorySegment kernelMemSeg, long workSize) {
         var workSizeMemSeg = arena.allocateFrom(ValueLayout.JAVA_LONG, workSize);
         invokeClMethod(
-                OpenClBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
+                MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
                 kernelMemSeg,
                 1,
@@ -183,17 +187,17 @@ public class OpenClConnector {
     }
 
     public void finish(MemorySegment commandQueueMemSeg) {
-        invokeClMethod(OpenClBinding.FINISH_HANDLE, commandQueueMemSeg);
+        invokeClMethod(MethodBinding.FINISH_HANDLE, commandQueueMemSeg);
     }
 
     public float[] enqueueReadBuffer(MemorySegment commandQueueMemSeg, MemorySegment clBufferMemSeg, long length) {
         long byteSize = ValueLayout.JAVA_FLOAT.byteSize() * length;
         var resultMemSeg = arena.allocate(byteSize);
         invokeClMethod(
-                OpenClBinding.ENQUEUE_READ_BUFFER_HANDLE,
+                MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
                 commandQueueMemSeg,
                 clBufferMemSeg,
-                ClParamValue.CL_TRUE,
+                ParamValue.CL_TRUE,
                 0L,
                 byteSize,
                 resultMemSeg,
@@ -205,28 +209,28 @@ public class OpenClConnector {
 
     public void releaseClMemoryObjects(MemorySegment... clMemoryObjects) {
         for (var clMemoryObject : clMemoryObjects) {
-            invokeClMethod(OpenClBinding.RELEASE_MEM_OBJECT_HANDLE, clMemoryObject);
+            invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, clMemoryObject);
         }
     }
 
     public void releaseKernel(MemorySegment kernelMemSeg) {
-        invokeClMethod(OpenClBinding.RELEASE_KERNEL_HANDLE, kernelMemSeg);
+        invokeClMethod(MethodBinding.RELEASE_KERNEL_HANDLE, kernelMemSeg);
     }
 
     public void releaseProgram(MemorySegment programMemSeg) {
-        invokeClMethod(OpenClBinding.RELEASE_PROGRAM_HANDLE, programMemSeg);
+        invokeClMethod(MethodBinding.RELEASE_PROGRAM_HANDLE, programMemSeg);
     }
 
     public void releaseCommandQueue(MemorySegment commandQueueMemSeg) {
-        invokeClMethod(OpenClBinding.RELEASE_COMMAND_QUEUE_HANDLE, commandQueueMemSeg);
+        invokeClMethod(MethodBinding.RELEASE_COMMAND_QUEUE_HANDLE, commandQueueMemSeg);
     }
 
     public int getCommandQueueReferenceCount(MemorySegment commandQueueMemSeg) {
         var refCountMemSeg = arena.allocate(ValueLayout.JAVA_INT);
         invokeClMethod(
-                OpenClBinding.GET_COMMAND_QUEUE_INFO_HANDLE,
+                MethodBinding.GET_COMMAND_QUEUE_INFO_HANDLE,
                 commandQueueMemSeg,
-                ClParamValue.CL_QUEUE_REFERENCE_COUNT,
+                ParamValue.CL_QUEUE_REFERENCE_COUNT,
                 refCountMemSeg.byteSize(),
                 refCountMemSeg,
                 MemorySegment.NULL
@@ -244,9 +248,9 @@ public class OpenClConnector {
                     + Arrays.toString(arguments), e);
         }
         int errorCode = errorCodeMemSeg.get(ValueLayout.JAVA_INT, 0);
-        if (!ClReturnValue.CL_SUCCESS.matches(errorCode)) {
+        if (!ReturnValue.CL_SUCCESS.matches(errorCode)) {
             throw new IllegalStateException(
-                    "Error " + ClReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
+                    "Error " + ReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
         }
         return returnValue;
     }
@@ -259,9 +263,9 @@ public class OpenClConnector {
             throw new RuntimeException("Failed to call " + methodHandle + " with parameters: "
                     + Arrays.toString(arguments), e);
         }
-        if (!ClReturnValue.CL_SUCCESS.matches(returnValue)) {
+        if (!ReturnValue.CL_SUCCESS.matches(returnValue)) {
             throw new IllegalStateException(
-                    "Error " + ClReturnValue.convertToString(returnValue) + " while calling " + methodHandle);
+                    "Error " + ReturnValue.convertToString(returnValue) + " while calling " + methodHandle);
         }
     }
 

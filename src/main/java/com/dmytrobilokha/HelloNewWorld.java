@@ -1,6 +1,6 @@
 package com.dmytrobilokha;
 
-import com.dmytrobilokha.opencl.ClPlatform;
+import com.dmytrobilokha.opencl.Platform;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
 
@@ -14,7 +14,7 @@ public class HelloNewWorld {
                 "   __kernel void simple_add(__global const float* A, __global const float* B, __global float* C) { "
                         + "       C[get_global_id(0)] = A[get_global_id(0)] + B[get_global_id(0)];                      "
                         + "   }";
-        try (var platform = ClPlatform.initDefault(kernelCode)) {
+        try (var platform = Platform.initDefault(kernelCode)) {
             var devices = platform.getDevices();
             System.out.println("Number of devices: " + devices.size());
             System.out.println("First device name: " + devices.getFirst().getName());

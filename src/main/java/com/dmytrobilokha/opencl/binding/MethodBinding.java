@@ -1,4 +1,6 @@
-package com.dmytrobilokha.opencl;
+package com.dmytrobilokha.opencl.binding;
+
+import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
 
 import java.lang.foreign.FunctionDescriptor;
 import java.lang.foreign.Linker;
@@ -9,7 +11,7 @@ import java.lang.invoke.MethodHandle;
 import java.util.Arrays;
 import java.util.Optional;
 
-public final class OpenClBinding {
+public final class MethodBinding {
 
     private static final String LIB_PATH_PROPERTY = "opencl.lib.path";
     private static final String DEFAULT_LIB_PATH = "/usr/local/lib/libOpenCL.so";
@@ -337,7 +339,7 @@ public final class OpenClBinding {
                     GET_COMMAND_QUEUE_INFO_DESC
             );
 
-    private OpenClBinding() {
+    private MethodBinding() {
         // no instantiation
     }
 
@@ -350,37 +352,38 @@ public final class OpenClBinding {
         if (lookupResult.isPresent()) {
             return lookupResult.get();
         }
-        throw new IllegalStateException("Lookup failed for symbol: " + symbol);
+        throw new OpenClRuntimeException("Lookup failed for symbol: " + symbol);
     }
 
-    static MemorySegment invokeMemSegClMethod(
+    public static MemorySegment invokeMemSegClMethod(
             MemorySegment errorCodeMemSeg, MethodHandle methodHandle, Object... arguments) {
         MemorySegment returnValue;
         try {
             returnValue = (MemorySegment) methodHandle.invokeWithArguments(arguments);
         } catch (Throwable e) {
-            throw new RuntimeException("Failed to call " + methodHandle + " with parameters: "
+            throw new OpenClRuntimeException("Failed to call " + methodHandle + " with parameters: "
                     + Arrays.toString(arguments), e);
         }
         int errorCode = errorCodeMemSeg.get(ValueLayout.JAVA_INT, 0);
-        if (!ClReturnValue.CL_SUCCESS.matches(errorCode)) {
-            throw new IllegalStateException(
-                    "Error " + ClReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
+        if (!ReturnValue.CL_SUCCESS.matches(errorCode)) {
+            throw new OpenClRuntimeException(
+                    "Error " + ReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
         }
         return returnValue;
     }
 
-    static void invokeClMethod(MethodHandle methodHandle, Object... arguments) {
+    public static void invokeClMethod(MethodHandle methodHandle, Object... arguments) {
         int returnValue;
         try {
             returnValue = (int) methodHandle.invokeWithArguments(arguments);
         } catch (Throwable e) {
-            throw new RuntimeException("Failed to call " + methodHandle + " with parameters: "
+            throw new OpenClRuntimeException("Failed to call " + methodHandle + " with parameters: "
                     + Arrays.toString(arguments), e);
         }
-        if (!ClReturnValue.CL_SUCCESS.matches(returnValue)) {
-            throw new IllegalStateException(
-                    "Error " + ClReturnValue.convertToString(returnValue) + " while calling " + methodHandle);
+        if (!ReturnValue.CL_SUCCESS.matches(returnValue)) {
+            throw new OpenClRuntimeException(
+                    "Error " + ReturnValue.convertToString(returnValue) + " while calling " + methodHandle
+                + " with parameters: " + Arrays.toString(arguments));
         }
     }
 }

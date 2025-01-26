@@ -2,14 +2,14 @@ package com.dmytrobilokha.opencl;
 
 import java.lang.foreign.MemorySegment;
 
-public class ClBuffer {
+public class PlatformBuffer {
 
     private final long byteSize;
     private final MemorySegment bufferMemSeg;
     private final DeviceMemoryAccess deviceMemoryAccess;
     private final HostMemoryAccess hostMemoryAccess;
 
-    public ClBuffer(long byteSize, MemorySegment bufferMemSeg, DeviceMemoryAccess deviceMemoryAccess, HostMemoryAccess hostMemoryAccess) {
+    public PlatformBuffer(long byteSize, MemorySegment bufferMemSeg, DeviceMemoryAccess deviceMemoryAccess, HostMemoryAccess hostMemoryAccess) {
         this.byteSize = byteSize;
         this.bufferMemSeg = bufferMemSeg;
         this.deviceMemoryAccess = deviceMemoryAccess;
@@ -20,7 +20,7 @@ public class ClBuffer {
         return byteSize;
     }
 
-    public MemorySegment getBufferMemSeg() {
+    MemorySegment getBufferMemSeg() {
         return bufferMemSeg;
     }
 

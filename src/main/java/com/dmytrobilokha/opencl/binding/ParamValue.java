@@ -250,14 +250,23 @@ public final class ParamValue {
     public static final long CL_DEVICE_NON_UNIFORM_WORK_GROUP_SUPPORT = 0x1065;
     /* Returns the OpenCL C all versions supported. Expected Java type: Struct/long array. */
     public static final long CL_DEVICE_OPENCL_C_ALL_VERSIONS = 0x1066;
+    /* Returns the preferred work-group size multiple for kernels executed on the device. Expected Java type: long. */
     public static final long CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE = 0x1067;
+    /* Returns whether work-group collective functions are supported. Expected Java type: boolean (long). */
     public static final long CL_DEVICE_WORK_GROUP_COLLECTIVE_FUNCTIONS_SUPPORT = 0x1068;
+    /* Returns whether generic address space is supported. Expected Java type: boolean (long). */
     public static final long CL_DEVICE_GENERIC_ADDRESS_SPACE_SUPPORT = 0x1069;
+    /* Returns the OpenCL C features supported by the device. Expected Java type: Struct/long array. */
     public static final long CL_DEVICE_OPENCL_C_FEATURES = 0x106F;
+    /* Returns the capabilities of the device enqueue feature. Expected Java type: long. */
     public static final long CL_DEVICE_DEVICE_ENQUEUE_CAPABILITIES = 0x1070;
+    /* Returns whether pipes are supported by the device. Expected Java type: boolean (long). */
     public static final long CL_DEVICE_PIPE_SUPPORT = 0x1071;
+    /* Returns the latest OpenCL conformance test suite version passed. Expected Java type: String. */
     public static final long CL_DEVICE_LATEST_CONFORMANCE_VERSION_PASSED = 0x1072;
+    /* Returns the capabilities of command buffers supported by the device (KHR extension). Expected Java type: long. */
     public static final long CL_DEVICE_COMMAND_BUFFER_CAPABILITIES_KHR = 0x12A9;
+    /* Returns the required queue properties for using command buffers on the device (KHR extension). Expected Java type: long. */
     public static final long CL_DEVICE_COMMAND_BUFFER_REQUIRED_QUEUE_PROPERTIES_KHR = 0x12AA;
 
     /* cl_command_queue_info */

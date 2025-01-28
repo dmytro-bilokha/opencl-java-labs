@@ -12,8 +12,12 @@ import java.util.List;
 
 public class Platform implements AutoCloseable {
 
+    private static final long PLATFORM_NAME_MAX_SIZE = 100L;
+
     private final Arena arena;
     private final MemorySegment platformIdMemSeg;
+    private final String name;
+    private final String version;
     private final MemorySegment deviceIdsMemSeg;
     private final MemorySegment contextMemSeg;
     private final List<Device> devices;
@@ -21,12 +25,6 @@ public class Platform implements AutoCloseable {
     private final List<Kernel> kernels;
     private final List<PlatformBuffer> buffers;
     private final MemorySegment errorCodeMemSeg;
-
-    /*
-    TODO:
-    - add bindings for clGetPlatformInfo to populate the name
-    - query device for important params: local memory, preferable local size, etc.
-     */
 
     public static Platform initDefault(String programSource) {
         var arena = Arena.ofConfined();
@@ -40,13 +38,22 @@ public class Platform implements AutoCloseable {
         if (numberOfPlatformDevices < 1) {
             throw new OpenClRuntimeException("Default platform has no devices");
         }
-        return new Platform(arena, defaultPlatformIdMemSeg, numberOfPlatformDevices, programSource);
+        var defaultPlatformName = queryPlatformName(arena, defaultPlatformIdMemSeg);
+        return new Platform(
+                arena, defaultPlatformIdMemSeg, defaultPlatformName, numberOfPlatformDevices, programSource);
     }
 
-    private Platform(Arena arena, MemorySegment platformIdMemSeg, int numberOfPlatformDevices, String programSource) {
+    private Platform(
+            Arena arena,
+            MemorySegment platformIdMemSeg,
+            String name,
+            int numberOfPlatformDevices,
+            String programSource) {
         this.arena = arena;
         this.platformIdMemSeg = platformIdMemSeg;
+        this.name = name;
         this.errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
+        this.version = queryVersion();
         this.deviceIdsMemSeg = queryPlatformDeviceIds(numberOfPlatformDevices);
         this.contextMemSeg = createContext(numberOfPlatformDevices);
         var devicesList = new ArrayList<Device>();
@@ -149,6 +156,19 @@ public class Platform implements AutoCloseable {
         );
     }
 
+    private String queryVersion() {
+        var platformNameMemSeg = arena.allocate(PLATFORM_NAME_MAX_SIZE);
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_PLATFORM_INFO_HANDLE,
+                platformIdMemSeg,
+                ParamValue.CL_PLATFORM_VERSION,
+                PLATFORM_NAME_MAX_SIZE,
+                platformNameMemSeg,
+                MemorySegment.NULL
+        );
+        return platformNameMemSeg.getString(0);
+    }
+
     private void releaseContext() {
         MethodBinding.invokeClMethod(MethodBinding.RELEASE_CONTEXT_HANDLE, contextMemSeg);
     }
@@ -171,13 +191,35 @@ public class Platform implements AutoCloseable {
 
     private static int queryNumberOfPlatformDevices(Arena arena, MemorySegment platformIdMemSeg) {
         var numDevicesMemSeg = arena.allocate(ValueLayout.JAVA_INT);
-        MethodBinding.invokeClMethod(MethodBinding.GET_DEVICE_IDS_HANDLE,
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_DEVICE_IDS_HANDLE,
                 platformIdMemSeg,
                 ParamValue.CL_DEVICE_TYPE_ALL,
                 0,
                 MemorySegment.NULL,
                 numDevicesMemSeg);
         return numDevicesMemSeg.get(ValueLayout.JAVA_INT, 0);
+    }
+
+    private static String queryPlatformName(Arena arena, MemorySegment platformIdMemSeg) {
+        var platformNameMemSeg = arena.allocate(PLATFORM_NAME_MAX_SIZE);
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_PLATFORM_INFO_HANDLE,
+                platformIdMemSeg,
+                ParamValue.CL_PLATFORM_NAME,
+                PLATFORM_NAME_MAX_SIZE,
+                platformNameMemSeg,
+                MemorySegment.NULL
+        );
+        return platformNameMemSeg.getString(0);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getVersion() {
+        return version;
     }
 
     public List<Device> getDevices() {

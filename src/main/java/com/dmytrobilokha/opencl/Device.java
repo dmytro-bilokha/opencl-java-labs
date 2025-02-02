@@ -1,5 +1,6 @@
 package com.dmytrobilokha.opencl;
 
+import com.dmytrobilokha.memory.FloatMemoryMatrix;
 import com.dmytrobilokha.opencl.binding.ParamValue;
 import com.dmytrobilokha.opencl.binding.MethodBinding;
 import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
@@ -32,6 +33,8 @@ public class Device {
     private final long maxClockFrequency;
     private final long maxMemoryAllocationSize;
     private final long preferredVectorWidthFloat;
+    private final long max2dImageWidth;
+    private final long max2dImageHeight;
     private final MemorySegment commandQueueMemSeg;
 
     public Device(SegmentAllocator allocator, MemorySegment contextMemSeg, MemorySegment deviceIdMemSeg) {
@@ -52,6 +55,8 @@ public class Device {
         this.maxClockFrequency = queryMaxClockFrequency();
         this.maxMemoryAllocationSize = queryMaxMemoryAllocationSize();
         this.preferredVectorWidthFloat = queryPreferredVectorWidthFloat();
+        this.max2dImageWidth = queryMax2dImageWidth();
+        this.max2dImageHeight = queryMax2dImageHeight();
         this.commandQueueMemSeg = createCommandQueue();
     }
 
@@ -82,6 +87,51 @@ public class Device {
                 MemorySegment.NULL,
                 MemorySegment.NULL
         );
+    }
+
+    public void enqueueWriteBuffer(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
+        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
+                || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
+            throw new OpenClRuntimeException(
+                    "Unable to write data to the buffer with no write access for host: " + buffer);
+        }
+        if (buffer.getByteSize() < memoryMatrix.getByteSize()) {
+            throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
+        }
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
+                commandQueueMemSeg,
+                buffer.getBufferMemSeg(),
+                ParamValue.CL_TRUE,
+                0L,
+                memoryMatrix.getByteSize(),
+                memoryMatrix.getMemorySegment(),
+                0,
+                MemorySegment.NULL,
+                MemorySegment.NULL
+        );
+    }
+
+    public void enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
+        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
+                || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
+            throw new OpenClRuntimeException("Unable to read data from the buffer with no read access for host: "
+                    + buffer);
+        }
+        if (buffer.getByteSize() > memoryMatrix.getByteSize()) {
+            throw new OpenClRuntimeException("The buffer is bigger than matrix, unable to read");
+        }
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
+                commandQueueMemSeg,
+                buffer.getBufferMemSeg(),
+                ParamValue.CL_TRUE,
+                0L,
+                buffer.getByteSize(),
+                memoryMatrix.getMemorySegment(),
+                0,
+                MemorySegment.NULL,
+                MemorySegment.NULL);
     }
 
     public float[] enqueueReadBuffer(PlatformBuffer buffer) {
@@ -118,54 +168,6 @@ public class Device {
                 0,
                 MemorySegment.NULL,
                 MemorySegment.NULL);
-    }
-
-    public long getGlobalMemorySize() {
-        return globalMemorySize;
-    }
-
-    public long getLocalMemorySize() {
-        return localMemorySize;
-    }
-
-    public long getMaxComputeUnits() {
-        return maxComputeUnits;
-    }
-
-    public long getMaxWorkItemDimensions() {
-        return maxWorkItemDimensions;
-    }
-
-    public List<Long> getMaxWorkItemSizes() {
-        return maxWorkItemSizes;
-    }
-
-    public long getMaxWorkGroupSize() {
-        return maxWorkGroupSize;
-    }
-
-    public long getMaxClockFrequency() {
-        return maxClockFrequency;
-    }
-
-    public long getMaxMemoryAllocationSize() {
-        return maxMemoryAllocationSize;
-    }
-
-    public long getPreferredVectorWidthFloat() {
-        return preferredVectorWidthFloat;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getVersion() {
-        return version;
-    }
-
-    public String getClangVersion() {
-        return clangVersion;
     }
 
     private long queryGlobalMemorySize() {
@@ -216,6 +218,14 @@ public class Device {
         return queryDeviceInfoLong(ParamValue.CL_DEVICE_MAX_MEM_ALLOC_SIZE);
     }
 
+    private long queryMax2dImageWidth() {
+        return queryDeviceInfoLong(ParamValue.CL_DEVICE_IMAGE2D_MAX_WIDTH);
+    }
+
+    private long queryMax2dImageHeight() {
+        return queryDeviceInfoLong(ParamValue.CL_DEVICE_IMAGE2D_MAX_HEIGHT);
+    }
+
     private long queryDeviceInfoLong(long paramValue) {
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_DEVICE_INFO_HANDLE,
@@ -264,6 +274,62 @@ public class Device {
 
     private void releaseCommandQueue() {
         MethodBinding.invokeClMethod(MethodBinding.RELEASE_COMMAND_QUEUE_HANDLE, commandQueueMemSeg);
+    }
+
+    public long getGlobalMemorySize() {
+        return globalMemorySize;
+    }
+
+    public long getLocalMemorySize() {
+        return localMemorySize;
+    }
+
+    public long getMaxComputeUnits() {
+        return maxComputeUnits;
+    }
+
+    public long getMaxWorkItemDimensions() {
+        return maxWorkItemDimensions;
+    }
+
+    public List<Long> getMaxWorkItemSizes() {
+        return maxWorkItemSizes;
+    }
+
+    public long getMaxWorkGroupSize() {
+        return maxWorkGroupSize;
+    }
+
+    public long getMaxClockFrequency() {
+        return maxClockFrequency;
+    }
+
+    public long getMaxMemoryAllocationSize() {
+        return maxMemoryAllocationSize;
+    }
+
+    public long getPreferredVectorWidthFloat() {
+        return preferredVectorWidthFloat;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getVersion() {
+        return version;
+    }
+
+    public String getClangVersion() {
+        return clangVersion;
+    }
+
+    public long getMax2dImageWidth() {
+        return max2dImageWidth;
+    }
+
+    public long getMax2dImageHeight() {
+        return max2dImageHeight;
     }
 
 }

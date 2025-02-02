@@ -92,6 +92,17 @@ public class Platform implements AutoCloseable {
                 argumentPointerMemSeg);
     }
 
+    public void setKernelArgument(Kernel kernel, int argumentIndex, long argument) {
+        // TODO: allocate on buffer or somewhere to not waste memory
+        var argumentMemSeg = arena.allocateFrom(ValueLayout.JAVA_LONG, argument);
+        MethodBinding.invokeClMethod(
+                MethodBinding.SET_KERNEL_ARG_HANDLE,
+                kernel.getKernelMemSeg(),
+                argumentIndex,
+                argumentMemSeg.byteSize(),
+                argumentMemSeg);
+    }
+
     public PlatformBuffer createBuffer(long byteSize, DeviceMemoryAccess deviceAccess, HostMemoryAccess hostAccess) {
         var bufferMemSeg = MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,

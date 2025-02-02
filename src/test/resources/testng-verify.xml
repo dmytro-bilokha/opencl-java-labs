@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
 
-<suite name="OpenClUnitSuite">
-    <test name="UnitTest" verbose="1">
+<suite name="OpenClVerificationSuite">
+    <test name="VerificationTest" verbose="1">
         <groups>
             <run>
-                <include name="unit"/>
+                <include name="verification"/>
                 <exclude name="broken"/>
             </run>
         </groups>

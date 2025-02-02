@@ -1,4 +1,4 @@
-package com.dmytrobilokha.verification;
+package com.dmytrobilokha.opencl.verification;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;

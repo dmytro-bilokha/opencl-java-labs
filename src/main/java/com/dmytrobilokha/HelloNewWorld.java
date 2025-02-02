@@ -4,7 +4,7 @@ import com.dmytrobilokha.memory.MemoryMatrixFactory;
 import com.dmytrobilokha.opencl.Platform;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
-import com.dmytrobilokha.verification.FloatMatrix;
+import com.dmytrobilokha.opencl.verification.FloatMatrix;
 
 import java.lang.foreign.ValueLayout;
 import java.util.Arrays;

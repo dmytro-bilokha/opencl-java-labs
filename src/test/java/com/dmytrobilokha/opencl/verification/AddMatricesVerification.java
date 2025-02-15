@@ -43,7 +43,6 @@ public class AddMatricesVerification {
 
     @Test(dataProvider = "singleMatrixSizesProvider")
     public void addsTwoMatrices(int rows, int columns) {
-        System.out.println("Verification test");
         var matrixA = matrixFactory.createFloatMatrix(rows, columns);
         var verificationMatrixA = FloatMatrix.ofUniRandoms(rows, columns);
         matrixA.setData(verificationMatrixA.getData());
@@ -67,15 +66,21 @@ public class AddMatricesVerification {
                 HostMemoryAccess.READ_ONLY
         );
         var addMatricesKernel = platform.createKernel("addMatrices");
+        long nsPoint1 = System.nanoTime();
         platform.setKernelArgument(addMatricesKernel, 0, bufferA);
         platform.setKernelArgument(addMatricesKernel, 1, bufferB);
         platform.setKernelArgument(addMatricesKernel, 2, resultBuffer);
         platform.setKernelArgument(addMatricesKernel, 3, rows * columns);
         device.enqueueWriteBuffer(bufferA, matrixA);
         device.enqueueWriteBuffer(bufferB, matrixB);
-        device.enqueueNdRangeKernel(addMatricesKernel, 512);
+        device.enqueueNdRangeKernel(addMatricesKernel, 384);
         device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
+        long nsPoint2 = System.nanoTime();
         var verificationResult = verificationMatrixA.add(verificationMatrixB);
+        long nsPoint3 = System.nanoTime();
+        System.out.println(rows + "X" + columns + ":");
+        System.out.println("OpenCL calculation: " + (nsPoint2 - nsPoint1) / 1_000_000 + "ms");
+        System.out.println("CPU calculation: " + (nsPoint3 - nsPoint2) / 1_000_000 + "ms");
         TestUtil.assertMatricesEqual(resultMatrix, verificationResult);
     }
 

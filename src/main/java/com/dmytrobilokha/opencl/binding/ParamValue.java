@@ -278,6 +278,19 @@ public final class ParamValue {
     public static final long CL_QUEUE_DEVICE_DEFAULT = 0x1095;
     public static final long CL_QUEUE_PROPERTIES_ARRAY = 0x1098;
 
+    /* cl_command_queue_properties - bitfield */
+    public static final long CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE = (1 << 0);
+    public static final long CL_QUEUE_PROFILING_ENABLE = (1 << 1);
+    public static final long CL_QUEUE_ON_DEVICE = (1 << 2);
+    public static final long CL_QUEUE_ON_DEVICE_DEFAULT = (1 << 3);
+
+    /* cl_profiling_info */
+    public static final int CL_PROFILING_COMMAND_QUEUED = 0x1280;
+    public static final int CL_PROFILING_COMMAND_SUBMIT = 0x1281;
+    public static final int CL_PROFILING_COMMAND_START = 0x1282;
+    public static final int CL_PROFILING_COMMAND_END = 0x1283;
+    public static final int CL_PROFILING_COMMAND_COMPLETE = 0x1284;
+
     private ParamValue() {
         // no instance
     }

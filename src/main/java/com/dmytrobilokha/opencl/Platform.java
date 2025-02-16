@@ -12,9 +12,12 @@ import java.util.List;
 
 public class Platform implements AutoCloseable {
 
+    private static final long TMP_BUFFER_BYTE_SIZE = 250;
+    private static final long TMP_BUFFER_BYTE_ALIGN = 256;
     private static final long PLATFORM_NAME_MAX_SIZE = 100L;
 
     private final Arena arena;
+    private final MemorySegment tmpBufferMemSeg;
     private final MemorySegment platformIdMemSeg;
     private final String name;
     private final String version;
@@ -28,6 +31,7 @@ public class Platform implements AutoCloseable {
 
     public static Platform initDefault(String programSource) {
         var arena = Arena.ofConfined();
+        var tmpBufferMemSeg = arena.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
         int numberOfPlatforms = queryNumberOfPlatforms(arena);
         if (numberOfPlatforms < 1) {
             throw new OpenClRuntimeException("No OpenCL platforms found, unable to init");
@@ -40,16 +44,18 @@ public class Platform implements AutoCloseable {
         }
         var defaultPlatformName = queryPlatformName(arena, defaultPlatformIdMemSeg);
         return new Platform(
-                arena, defaultPlatformIdMemSeg, defaultPlatformName, numberOfPlatformDevices, programSource);
+                arena, tmpBufferMemSeg, defaultPlatformIdMemSeg, defaultPlatformName, numberOfPlatformDevices, programSource);
     }
 
     private Platform(
             Arena arena,
+            MemorySegment tmpBufferMemSeg,
             MemorySegment platformIdMemSeg,
             String name,
             int numberOfPlatformDevices,
             String programSource) {
         this.arena = arena;
+        this.tmpBufferMemSeg = tmpBufferMemSeg;
         this.platformIdMemSeg = platformIdMemSeg;
         this.name = name;
         this.errorCodeMemSeg = arena.allocate(ValueLayout.JAVA_INT);
@@ -115,6 +121,27 @@ public class Platform implements AutoCloseable {
         var buffer = new PlatformBuffer(byteSize, bufferMemSeg, deviceAccess, hostAccess);
         buffers.add(buffer);
         return buffer;
+    }
+
+    public ProfilingInfo getEventProfilingInfo(Event event) {
+        long queued = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_QUEUED);
+        long submitted = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_SUBMIT);
+        long started = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_START);
+        long finished = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_END);
+        long completed = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_COMPLETE);
+        return new ProfilingInfo(queued, submitted, started, finished, completed);
+    }
+
+    private long getEventProfilingInfoItem(Event event, int paramValue) {
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_EVENT_PROFILING_INFO_HANDLE,
+                event.getEventMemSeg().get(ValueLayout.ADDRESS, 0),
+                paramValue,
+                ValueLayout.JAVA_LONG.byteSize(),
+                tmpBufferMemSeg,
+                MemorySegment.NULL
+        );
+        return tmpBufferMemSeg.get(ValueLayout.JAVA_LONG, 0);
     }
 
     private MemorySegment queryPlatformDeviceIds(int numberOfDevices) {

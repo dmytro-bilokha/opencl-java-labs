@@ -4,6 +4,7 @@ import com.dmytrobilokha.FileUtil;
 import com.dmytrobilokha.memory.MemoryMatrixFactory;
 import com.dmytrobilokha.opencl.Device;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
+import com.dmytrobilokha.opencl.Event;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
 import com.dmytrobilokha.opencl.Platform;
 import org.testng.annotations.AfterMethod;
@@ -66,22 +67,42 @@ public class AddMatricesVerification {
                 HostMemoryAccess.READ_ONLY
         );
         var addMatricesKernel = platform.createKernel("addMatrices");
-        long nsPoint1 = System.nanoTime();
         platform.setKernelArgument(addMatricesKernel, 0, bufferA);
         platform.setKernelArgument(addMatricesKernel, 1, bufferB);
         platform.setKernelArgument(addMatricesKernel, 2, resultBuffer);
         platform.setKernelArgument(addMatricesKernel, 3, rows * columns);
-        device.enqueueWriteBuffer(bufferA, matrixA);
-        device.enqueueWriteBuffer(bufferB, matrixB);
-        device.enqueueNdRangeKernel(addMatricesKernel, 384);
-        device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
+        long nsPoint1 = System.nanoTime();
+        var writeBufferAEvent = device.enqueueWriteBuffer(bufferA, matrixA);
         long nsPoint2 = System.nanoTime();
-        var verificationResult = verificationMatrixA.add(verificationMatrixB);
+        var writeBufferBEvent = device.enqueueWriteBuffer(bufferB, matrixB);
         long nsPoint3 = System.nanoTime();
+        var addMatricesEvent = device.enqueueNdRangeKernel(addMatricesKernel, 384);
+        long nsPoint4 = System.nanoTime();
+        var readResultBufferEvent = device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
+        long nsPoint5 = System.nanoTime();
+        var verificationResult = verificationMatrixA.add(verificationMatrixB);
+        long nsPoint6 = System.nanoTime();
         System.out.println(rows + "X" + columns + ":");
-        System.out.println("OpenCL calculation: " + (nsPoint2 - nsPoint1) / 1_000_000 + "ms");
-        System.out.println("CPU calculation: " + (nsPoint3 - nsPoint2) / 1_000_000 + "ms");
+        System.out.println("OpenCL calculation: " + (nsPoint5 - nsPoint1) / 1_000_000 + "ms");
+        System.out.println("  writing buffer A: " + (nsPoint2 - nsPoint1) / 1_000_000 + "ms");
+        printEventProfiling(writeBufferAEvent, "Writing buffer A");
+        System.out.println("  writing buffer B: " + (nsPoint3 - nsPoint2) / 1_000_000 + "ms");
+        printEventProfiling(writeBufferBEvent, "Writing buffer B");
+        System.out.println("  execution: " + (nsPoint4 - nsPoint3) / 1_000_000 + "ms");
+        printEventProfiling(addMatricesEvent, "addMatrices");
+        System.out.println("  reading result buffer: " + (nsPoint5 - nsPoint4) / 1_000_000 + "ms");
+        printEventProfiling(readResultBufferEvent, "Reading result buffer");
+        System.out.println("CPU calculation: " + (nsPoint6 - nsPoint5) / 1_000_000 + "ms");
         TestUtil.assertMatricesEqual(resultMatrix, verificationResult);
+    }
+
+    private void printEventProfiling(Event event, String name) {
+        var profilingInfo = platform.getEventProfilingInfo(event);
+        System.out.println(name + " event profiling, microseconds:");
+        System.out.println("    submitted - queued = " + (profilingInfo.commandSubmittedNanos() - profilingInfo.commandQueuedNanos()) / 1000);
+        System.out.println("    started - submitted = " + (profilingInfo.commandStartedNanos() - profilingInfo.commandSubmittedNanos()) / 1000);
+        System.out.println("    finished - started = " + (profilingInfo.commandFinishedNanos() - profilingInfo.commandStartedNanos()) / 1000);
+        System.out.println("    completed - finished = " + (profilingInfo.commandCompletedNanos() - profilingInfo.commandFinishedNanos()) / 1000);
     }
 
 }

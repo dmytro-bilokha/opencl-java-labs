@@ -356,6 +356,23 @@ public final class MethodBinding {
                     GET_COMMAND_QUEUE_INFO_DESC
             );
 
+    private static final MemorySegment GET_EVENT_PROFILING_INFO_MEMSEG =
+            lookupSymbol("clGetEventProfilingInfo");
+    private static final FunctionDescriptor GET_EVENT_PROFILING_INFO_DESC =
+            FunctionDescriptor.of(
+                    ValueLayout.JAVA_INT,      // Return type: cl_int
+                    ValueLayout.ADDRESS,       // cl_event event
+                    ValueLayout.JAVA_INT,      // cl_profiling_info param_name
+                    ValueLayout.JAVA_LONG,     // size_t param_value_size
+                    ValueLayout.ADDRESS,       // void* param_value
+                    ValueLayout.ADDRESS        // size_t* param_value_size_ret
+            );
+    public static final MethodHandle GET_EVENT_PROFILING_INFO_HANDLE =
+            linker.downcallHandle(
+                    GET_EVENT_PROFILING_INFO_MEMSEG,
+                    GET_EVENT_PROFILING_INFO_DESC
+            );
+
     private MethodBinding() {
         // no instantiation
     }

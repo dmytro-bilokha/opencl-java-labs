@@ -89,7 +89,7 @@ public class Device {
         );
     }
 
-    public void enqueueWriteBuffer(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
+    public Event enqueueWriteBuffer(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
                 || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
             throw new OpenClRuntimeException(
@@ -98,6 +98,7 @@ public class Device {
         if (buffer.getByteSize() < memoryMatrix.getByteSize()) {
             throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
         }
+        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
                 commandQueueMemSeg,
@@ -108,11 +109,12 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                MemorySegment.NULL
+                eventMemSeg
         );
+        return new Event(eventMemSeg);
     }
 
-    public void enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
+    public Event enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
                 || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
             throw new OpenClRuntimeException("Unable to read data from the buffer with no read access for host: "
@@ -121,6 +123,7 @@ public class Device {
         if (buffer.getByteSize() > memoryMatrix.getByteSize()) {
             throw new OpenClRuntimeException("The buffer is bigger than matrix, unable to read");
         }
+        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
                 commandQueueMemSeg,
@@ -131,7 +134,8 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                MemorySegment.NULL);
+                eventMemSeg);
+        return new Event(eventMemSeg);
     }
 
     public float[] enqueueReadBuffer(PlatformBuffer buffer) {
@@ -155,8 +159,9 @@ public class Device {
         return resultMemSeg.toArray(ValueLayout.JAVA_FLOAT);
     }
 
-    public void enqueueNdRangeKernel(Kernel kernel, long workSize) {
+    public Event enqueueNdRangeKernel(Kernel kernel, long workSize) {
         var workSizeMemSeg = allocator.allocateFrom(ValueLayout.JAVA_LONG, workSize);
+        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
@@ -167,7 +172,8 @@ public class Device {
                 MemorySegment.NULL,
                 0,
                 MemorySegment.NULL,
-                MemorySegment.NULL);
+                eventMemSeg);
+        return new Event(eventMemSeg);
     }
 
     private long queryGlobalMemorySize() {
@@ -263,12 +269,18 @@ public class Device {
     }
 
     private MemorySegment createCommandQueue() {
+        long[] properties = new long[]{
+                ParamValue.CL_QUEUE_PROPERTIES,
+                ParamValue.CL_QUEUE_PROFILING_ENABLE,
+                0L
+        };
+        var propertiesMemSeg = allocator.allocateFrom(ValueLayout.JAVA_LONG, properties);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
                 contextMemSeg,
                 deviceIdMemSeg,
-                MemorySegment.NULL, //No queue properties for now
+                propertiesMemSeg,
                 errorCodeMemSeg);
     }
 

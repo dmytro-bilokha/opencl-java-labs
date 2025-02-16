@@ -133,7 +133,7 @@ public class Platform implements AutoCloseable {
     private long getEventProfilingInfoItem(Event event, int paramValue) {
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_EVENT_PROFILING_INFO_HANDLE,
-                event.getEventMemSeg().get(ValueLayout.ADDRESS, 0),
+                event.getEventMemSeg(),
                 paramValue,
                 ValueLayout.JAVA_LONG.byteSize(),
                 tmpBufferMemSeg,

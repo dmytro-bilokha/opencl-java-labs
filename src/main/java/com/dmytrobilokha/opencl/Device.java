@@ -98,7 +98,6 @@ public class Device {
         if (buffer.getByteSize() < memoryMatrix.getByteSize()) {
             throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
         }
-        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
                 commandQueueMemSeg,
@@ -109,9 +108,9 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                eventMemSeg
+                tmpBufferMemSeg
         );
-        return new Event(eventMemSeg);
+        return Event.fromPointer(tmpBufferMemSeg);
     }
 
     public Event enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
@@ -123,7 +122,6 @@ public class Device {
         if (buffer.getByteSize() > memoryMatrix.getByteSize()) {
             throw new OpenClRuntimeException("The buffer is bigger than matrix, unable to read");
         }
-        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
                 commandQueueMemSeg,
@@ -134,8 +132,8 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                eventMemSeg);
-        return new Event(eventMemSeg);
+                tmpBufferMemSeg);
+        return Event.fromPointer(tmpBufferMemSeg);
     }
 
     public float[] enqueueReadBuffer(PlatformBuffer buffer) {
@@ -161,6 +159,7 @@ public class Device {
 
     public Event enqueueNdRangeKernel(Kernel kernel, long workSize) {
         tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
+        // TODO: switch to using tmpBufferMemSeg here as well
         var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
@@ -173,7 +172,7 @@ public class Device {
                 0,
                 MemorySegment.NULL,
                 eventMemSeg);
-        return new Event(eventMemSeg);
+        return Event.fromPointer(eventMemSeg);
     }
 
     private long queryGlobalMemorySize() {

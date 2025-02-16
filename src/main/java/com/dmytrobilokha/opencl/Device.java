@@ -14,7 +14,7 @@ import java.util.List;
 public class Device {
 
     private static final long TMP_BUFFER_BYTE_SIZE = 250;
-    private static final long TMP_BUFFER_BYTE_ALIGN = 256;
+    private static final long TMP_BUFFER_BYTE_ALIGN = 16;
 
     private final SegmentAllocator allocator;
     private final MemorySegment tmpBufferMemSeg;
@@ -67,7 +67,7 @@ public class Device {
     public void enqueueWriteBuffer(PlatformBuffer buffer, float[] data) {
         long dataSize = data.length * ValueLayout.JAVA_FLOAT.byteSize();
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
-            || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
+                || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
             throw new OpenClRuntimeException(
                     "Unable to write data to the buffer with no write access for host: " + buffer);
         }
@@ -140,9 +140,9 @@ public class Device {
 
     public float[] enqueueReadBuffer(PlatformBuffer buffer) {
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
-            || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
+                || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
             throw new OpenClRuntimeException("Unable to read data from the buffer with no read access for host: "
-                + buffer);
+                    + buffer);
         }
         var resultMemSeg = allocator.allocate(buffer.getByteSize());
         MethodBinding.invokeClMethod(
@@ -160,7 +160,7 @@ public class Device {
     }
 
     public Event enqueueNdRangeKernel(Kernel kernel, long workSize) {
-        var workSizeMemSeg = allocator.allocateFrom(ValueLayout.JAVA_LONG, workSize);
+        tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
         var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
@@ -168,7 +168,7 @@ public class Device {
                 kernel.getKernelMemSeg(),
                 1,
                 MemorySegment.NULL,
-                workSizeMemSeg,
+                tmpBufferMemSeg,
                 MemorySegment.NULL,
                 0,
                 MemorySegment.NULL,
@@ -274,13 +274,13 @@ public class Device {
                 ParamValue.CL_QUEUE_PROFILING_ENABLE,
                 0L
         };
-        var propertiesMemSeg = allocator.allocateFrom(ValueLayout.JAVA_LONG, properties);
+        MemorySegment.copy(properties, 0, tmpBufferMemSeg, ValueLayout.JAVA_LONG, 0L, properties.length);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
                 contextMemSeg,
                 deviceIdMemSeg,
-                propertiesMemSeg,
+                tmpBufferMemSeg,
                 errorCodeMemSeg);
     }
 

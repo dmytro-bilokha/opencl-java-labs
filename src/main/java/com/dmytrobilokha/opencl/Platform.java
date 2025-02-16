@@ -14,7 +14,6 @@ public class Platform implements AutoCloseable {
 
     private static final long TMP_BUFFER_BYTE_SIZE = 250;
     private static final long TMP_BUFFER_BYTE_ALIGN = 256;
-    private static final long PLATFORM_NAME_MAX_SIZE = 100L;
 
     private final Arena arena;
     private final MemorySegment tmpBufferMemSeg;
@@ -32,17 +31,17 @@ public class Platform implements AutoCloseable {
     public static Platform initDefault(String programSource) {
         var arena = Arena.ofConfined();
         var tmpBufferMemSeg = arena.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
-        int numberOfPlatforms = queryNumberOfPlatforms(arena);
+        int numberOfPlatforms = queryNumberOfPlatforms(tmpBufferMemSeg);
         if (numberOfPlatforms < 1) {
             throw new OpenClRuntimeException("No OpenCL platforms found, unable to init");
         }
         var platformIdsMemSeg = queryPlatformIdsMemSeg(arena, numberOfPlatforms);
         var defaultPlatformIdMemSeg = platformIdsMemSeg.getAtIndex(ValueLayout.ADDRESS, 0);
-        int numberOfPlatformDevices = queryNumberOfPlatformDevices(arena, defaultPlatformIdMemSeg);
+        int numberOfPlatformDevices = queryNumberOfPlatformDevices(tmpBufferMemSeg, defaultPlatformIdMemSeg);
         if (numberOfPlatformDevices < 1) {
             throw new OpenClRuntimeException("Default platform has no devices");
         }
-        var defaultPlatformName = queryPlatformName(arena, defaultPlatformIdMemSeg);
+        var defaultPlatformName = queryPlatformName(tmpBufferMemSeg, defaultPlatformIdMemSeg);
         return new Platform(
                 arena, tmpBufferMemSeg, defaultPlatformIdMemSeg, defaultPlatformName, numberOfPlatformDevices, programSource);
     }
@@ -75,11 +74,12 @@ public class Platform implements AutoCloseable {
     }
 
     public Kernel createKernel(String functionName) {
+        tmpBufferMemSeg.setString(0L, functionName);
         var kernelMemSeg = MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_KERNEL_HANDLE,
                 programMemSeg,
-                arena.allocateFrom(functionName),
+                tmpBufferMemSeg,
                 errorCodeMemSeg
         );
         var kernel = new Kernel(functionName, kernelMemSeg);
@@ -88,25 +88,23 @@ public class Platform implements AutoCloseable {
     }
 
     public void setKernelArgument(Kernel kernel, int argumentIndex, PlatformBuffer argument) {
-        var argumentPointerMemSeg = arena.allocate(ValueLayout.ADDRESS);
-        argumentPointerMemSeg.set(ValueLayout.ADDRESS, 0, argument.getBufferMemSeg());
+        tmpBufferMemSeg.set(ValueLayout.ADDRESS, 0, argument.getBufferMemSeg());
         MethodBinding.invokeClMethod(
                 MethodBinding.SET_KERNEL_ARG_HANDLE,
                 kernel.getKernelMemSeg(),
                 argumentIndex,
-                argumentPointerMemSeg.byteSize(),
-                argumentPointerMemSeg);
+                ValueLayout.ADDRESS.byteSize(),
+                tmpBufferMemSeg);
     }
 
     public void setKernelArgument(Kernel kernel, int argumentIndex, long argument) {
-        // TODO: allocate on buffer or somewhere to not waste memory
-        var argumentMemSeg = arena.allocateFrom(ValueLayout.JAVA_LONG, argument);
+        tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, argument);
         MethodBinding.invokeClMethod(
                 MethodBinding.SET_KERNEL_ARG_HANDLE,
                 kernel.getKernelMemSeg(),
                 argumentIndex,
-                argumentMemSeg.byteSize(),
-                argumentMemSeg);
+                ValueLayout.JAVA_LONG.byteSize(),
+                tmpBufferMemSeg);
     }
 
     public PlatformBuffer createBuffer(long byteSize, DeviceMemoryAccess deviceAccess, HostMemoryAccess hostAccess) {
@@ -170,14 +168,13 @@ public class Platform implements AutoCloseable {
 
     private MemorySegment createProgram(String sourceCode) {
         var sourceCodeMemSeg = arena.allocateFrom(sourceCode);
-        var pointerToSourceCodeMemSeg = arena.allocate(ValueLayout.ADDRESS);
-        pointerToSourceCodeMemSeg.set(ValueLayout.ADDRESS, 0, sourceCodeMemSeg);
+        tmpBufferMemSeg.set(ValueLayout.ADDRESS, 0, sourceCodeMemSeg);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_PROGRAM_WITH_SOURCE_HANDLE,
                 contextMemSeg,
                 devices.size(),
-                pointerToSourceCodeMemSeg,
+                tmpBufferMemSeg,
                 MemorySegment.NULL,
                 errorCodeMemSeg);
     }
@@ -195,26 +192,24 @@ public class Platform implements AutoCloseable {
     }
 
     private String queryVersion() {
-        var platformNameMemSeg = arena.allocate(PLATFORM_NAME_MAX_SIZE);
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_PLATFORM_INFO_HANDLE,
                 platformIdMemSeg,
                 ParamValue.CL_PLATFORM_VERSION,
-                PLATFORM_NAME_MAX_SIZE,
-                platformNameMemSeg,
+                TMP_BUFFER_BYTE_SIZE,
+                tmpBufferMemSeg,
                 MemorySegment.NULL
         );
-        return platformNameMemSeg.getString(0);
+        return tmpBufferMemSeg.getString(0);
     }
 
     private void releaseContext() {
         MethodBinding.invokeClMethod(MethodBinding.RELEASE_CONTEXT_HANDLE, contextMemSeg);
     }
 
-    private static int queryNumberOfPlatforms(Arena arena) {
-        var numPlatformsMemSeg = arena.allocate(ValueLayout.JAVA_INT);
-        MethodBinding.invokeClMethod(MethodBinding.GET_PLATFORM_IDS_HANDLE, 0, MemorySegment.NULL, numPlatformsMemSeg);
-        return numPlatformsMemSeg.get(ValueLayout.JAVA_INT, 0);
+    private static int queryNumberOfPlatforms(MemorySegment tmpBufferMemSeg) {
+        MethodBinding.invokeClMethod(MethodBinding.GET_PLATFORM_IDS_HANDLE, 0, MemorySegment.NULL, tmpBufferMemSeg);
+        return tmpBufferMemSeg.get(ValueLayout.JAVA_INT, 0);
     }
 
     private static MemorySegment queryPlatformIdsMemSeg(Arena arena, int numberOfPlatforms) {
@@ -227,29 +222,27 @@ public class Platform implements AutoCloseable {
         return platformIdsMemSeg;
     }
 
-    private static int queryNumberOfPlatformDevices(Arena arena, MemorySegment platformIdMemSeg) {
-        var numDevicesMemSeg = arena.allocate(ValueLayout.JAVA_INT);
+    private static int queryNumberOfPlatformDevices(MemorySegment tmpBufferMemSeg, MemorySegment platformIdMemSeg) {
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_DEVICE_IDS_HANDLE,
                 platformIdMemSeg,
                 ParamValue.CL_DEVICE_TYPE_ALL,
                 0,
                 MemorySegment.NULL,
-                numDevicesMemSeg);
-        return numDevicesMemSeg.get(ValueLayout.JAVA_INT, 0);
+                tmpBufferMemSeg);
+        return tmpBufferMemSeg.get(ValueLayout.JAVA_INT, 0);
     }
 
-    private static String queryPlatformName(Arena arena, MemorySegment platformIdMemSeg) {
-        var platformNameMemSeg = arena.allocate(PLATFORM_NAME_MAX_SIZE);
+    private static String queryPlatformName(MemorySegment tmpBufferMemSeg, MemorySegment platformIdMemSeg) {
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_PLATFORM_INFO_HANDLE,
                 platformIdMemSeg,
                 ParamValue.CL_PLATFORM_NAME,
-                PLATFORM_NAME_MAX_SIZE,
-                platformNameMemSeg,
+                TMP_BUFFER_BYTE_SIZE,
+                tmpBufferMemSeg,
                 MemorySegment.NULL
         );
-        return platformNameMemSeg.getString(0);
+        return tmpBufferMemSeg.getString(0);
     }
 
     public String getName() {

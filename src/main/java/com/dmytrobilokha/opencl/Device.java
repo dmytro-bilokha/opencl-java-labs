@@ -10,6 +10,7 @@ import java.lang.foreign.SegmentAllocator;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 public class Device {
 
@@ -113,6 +114,30 @@ public class Device {
         return Event.fromPointer(tmpBufferMemSeg);
     }
 
+    public Event enqueueWriteBufferAsync(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
+        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
+                || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
+            throw new OpenClRuntimeException(
+                    "Unable to write data to the buffer with no write access for host: " + buffer);
+        }
+        if (buffer.getByteSize() < memoryMatrix.getByteSize()) {
+            throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
+        }
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
+                commandQueueMemSeg,
+                buffer.getBufferMemSeg(),
+                ParamValue.CL_FALSE,
+                0L,
+                memoryMatrix.getByteSize(),
+                memoryMatrix.getMemorySegment(),
+                0,
+                MemorySegment.NULL,
+                tmpBufferMemSeg
+        );
+        return Event.fromPointer(tmpBufferMemSeg);
+    }
+
     public Event enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
                 || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
@@ -173,6 +198,38 @@ public class Device {
                 MemorySegment.NULL,
                 eventMemSeg);
         return Event.fromPointer(eventMemSeg);
+    }
+
+    public Event enqueueNdRangeKernel(Kernel kernel, long workSize, Set<Event> eventsToWaitFor) {
+        tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
+        // TODO: switch to using tmpBufferMemSeg here as well
+        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
+                commandQueueMemSeg,
+                kernel.getKernelMemSeg(),
+                1,
+                MemorySegment.NULL,
+                tmpBufferMemSeg,
+                MemorySegment.NULL,
+                eventsToWaitFor.size(),
+                buildEventsArray(eventsToWaitFor),
+                eventMemSeg);
+        return Event.fromPointer(eventMemSeg);
+    }
+
+    private MemorySegment buildEventsArray(Set<Event> events) {
+        if (events.isEmpty()) {
+            return MemorySegment.NULL;
+        }
+        // TODO: use tmpBuffer instead of allocating new
+        var eventsArrayMemSeg = allocator.allocate(ValueLayout.ADDRESS, events.size());
+        var eventIterator = events.iterator();
+        for (int i = 0; eventIterator.hasNext(); i++) {
+            var event = eventIterator.next();
+            eventsArrayMemSeg.setAtIndex(ValueLayout.ADDRESS, i, event.getEventMemSeg());
+        }
+        return eventsArrayMemSeg;
     }
 
     private long queryGlobalMemorySize() {

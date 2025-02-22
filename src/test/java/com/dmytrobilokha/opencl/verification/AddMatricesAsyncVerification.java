@@ -1,37 +1,21 @@
 package com.dmytrobilokha.opencl.verification;
 
-import com.dmytrobilokha.FileUtil;
 import com.dmytrobilokha.memory.MemoryMatrixFactory;
-import com.dmytrobilokha.opencl.Device;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
-import com.dmytrobilokha.opencl.Platform;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.foreign.ValueLayout;
 import java.util.Set;
 
-@Test(groups = {"verification", "broken"})
+import static com.dmytrobilokha.opencl.verification.PlatformHandler.device;
+import static com.dmytrobilokha.opencl.verification.PlatformHandler.platform;
+
+@Test(groups = {"verification"})
 public class AddMatricesAsyncVerification {
 
-    private Platform platform;
-    private Device device;
-    private MemoryMatrixFactory matrixFactory;
-
-    @BeforeMethod
-    void init() {
-        platform = Platform.initDefault(FileUtil.readStringResource("main.cl"));
-        device = platform.getDevices().getFirst();
-        matrixFactory = MemoryMatrixFactory.newInstance();
-    }
-
-    @AfterMethod
-    void shutdown() {
-        platform.close();
-    }
+    private MemoryMatrixFactory matrixFactory = MemoryMatrixFactory.newInstance();
 
     @DataProvider(name = "singleMatrixSizesProvider")
     public Object[][] getMatrixSizes() {
@@ -93,6 +77,9 @@ public class AddMatricesAsyncVerification {
         System.out.println("  reading result buffer: " + (nsPoint5 - nsPoint4) / 1_000_000 + "ms");
         TestUtil.printEventProfiling(platform.getEventProfilingInfo(readResultBufferEvent), "Reading result buffer");
         System.out.println("CPU calculation: " + (nsPoint6 - nsPoint5) / 1_000_000 + "ms");
+        platform.releaseBuffer(bufferA);
+        platform.releaseBuffer(bufferB);
+        platform.releaseBuffer(resultBuffer);
         TestUtil.assertMatricesEqual(resultMatrix, verificationResult);
     }
 

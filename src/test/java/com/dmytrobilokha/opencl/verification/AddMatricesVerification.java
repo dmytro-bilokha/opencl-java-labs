@@ -1,36 +1,20 @@
 package com.dmytrobilokha.opencl.verification;
 
-import com.dmytrobilokha.FileUtil;
 import com.dmytrobilokha.memory.MemoryMatrixFactory;
-import com.dmytrobilokha.opencl.Device;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
-import com.dmytrobilokha.opencl.Platform;
-import org.testng.annotations.AfterSuite;
-import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.lang.foreign.ValueLayout;
 
+import static com.dmytrobilokha.opencl.verification.PlatformHandler.device;
+import static com.dmytrobilokha.opencl.verification.PlatformHandler.platform;
+
 @Test(groups = {"verification"})
 public class AddMatricesVerification {
 
-    private Platform platform;
-    private Device device;
-    private MemoryMatrixFactory matrixFactory;
-
-    @BeforeSuite
-    void init() {
-        platform = Platform.initDefault(FileUtil.readStringResource("main.cl"));
-        device = platform.getDevices().getFirst();
-        matrixFactory = MemoryMatrixFactory.newInstance();
-    }
-
-    @AfterSuite
-    void shutdown() {
-        platform.close();
-    }
+    private MemoryMatrixFactory matrixFactory = MemoryMatrixFactory.newInstance();
 
     @DataProvider(name = "singleMatrixSizesKernelsProvider")
     public Object[][] getMatrixSizesAndKernel() {

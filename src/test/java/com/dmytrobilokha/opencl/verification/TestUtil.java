@@ -1,6 +1,7 @@
 package com.dmytrobilokha.opencl.verification;
 
 import com.dmytrobilokha.memory.FloatMemoryMatrix;
+import com.dmytrobilokha.opencl.ProfilingInfo;
 import org.testng.Assert;
 
 public class TestUtil {
@@ -22,6 +23,14 @@ public class TestUtil {
                         "For (" + i + ", " + j + ") expected " + expectedValue + ", but got " + actualValue);
             }
         }
+    }
+
+    public static void printEventProfiling(ProfilingInfo profilingInfo, String name) {
+        System.out.println(name + " event profiling, microseconds:");
+        System.out.println("    submitted - queued = " + (profilingInfo.commandSubmittedNanos() - profilingInfo.commandQueuedNanos()) / 1000);
+        System.out.println("    started - submitted = " + (profilingInfo.commandStartedNanos() - profilingInfo.commandSubmittedNanos()) / 1000);
+        System.out.println("    finished - started = " + (profilingInfo.commandFinishedNanos() - profilingInfo.commandStartedNanos()) / 1000);
+        System.out.println("    completed - finished = " + (profilingInfo.commandCompletedNanos() - profilingInfo.commandFinishedNanos()) / 1000);
     }
 
 }

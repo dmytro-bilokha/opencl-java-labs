@@ -121,6 +121,17 @@ public class Platform implements AutoCloseable {
         return buffer;
     }
 
+    public void releaseBuffer(PlatformBuffer buffer) {
+        for (var bufferIterator = buffers.iterator(); bufferIterator.hasNext();) {
+            if (buffer == bufferIterator.next()) {
+                bufferIterator.remove();
+                MethodBinding.invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, buffer.getBufferMemSeg());
+                return;
+            }
+        }
+        throw new OpenClRuntimeException("Unable to release provided buffer, it doesn't belong to the platform");
+    }
+
     public ProfilingInfo getEventProfilingInfo(Event event) {
         long queued = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_QUEUED);
         long submitted = getEventProfilingInfoItem(event, ParamValue.CL_PROFILING_COMMAND_SUBMIT);
@@ -164,6 +175,18 @@ public class Platform implements AutoCloseable {
                 MemorySegment.NULL,
                 MemorySegment.NULL,
                 errorCodeMemSeg);
+    }
+
+    private long queryContextReferenceCount() {
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_CONTEXT_INFO_HANDLE,
+                contextMemSeg,
+                ParamValue.CL_CONTEXT_REFERENCE_COUNT,
+                ValueLayout.JAVA_INT.byteSize(),
+                tmpBufferMemSeg,
+                MemorySegment.NULL
+        );
+        return tmpBufferMemSeg.get(ValueLayout.JAVA_INT, 0);
     }
 
     private MemorySegment createProgram(String sourceCode) {
@@ -259,7 +282,7 @@ public class Platform implements AutoCloseable {
 
     @Override
     public void close() {
-        buffers.forEach(this::releaseClBuffer);
+        releaseClBuffers();
         kernels.forEach(this::releaseKernel);
         releaseProgram();
         devices.forEach(Device::releaseResources);
@@ -275,8 +298,12 @@ public class Platform implements AutoCloseable {
         MethodBinding.invokeClMethod(MethodBinding.RELEASE_PROGRAM_HANDLE, programMemSeg);
     }
 
-    private void releaseClBuffer(PlatformBuffer buffer) {
-        MethodBinding.invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, buffer.getBufferMemSeg());
+    private void releaseClBuffers() {
+        for (var bufferIterator = buffers.iterator(); bufferIterator.hasNext();) {
+            var buffer = bufferIterator.next();
+            bufferIterator.remove();
+            MethodBinding.invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, buffer.getBufferMemSeg());
+        }
     }
 
 }

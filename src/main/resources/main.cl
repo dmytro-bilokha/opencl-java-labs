@@ -9,3 +9,4 @@ __kernel void addMatrices(__global const float* a, __global const float* b, __gl
         result[i] = a[i] + b[i];
     }
 }
+

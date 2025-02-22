@@ -85,6 +85,23 @@ public final class MethodBinding {
     public static final MethodHandle RELEASE_CONTEXT_HANDLE = linker.downcallHandle(
             RELEASE_CONTEXT_MEMSEG, RELEASE_CONTEXT_DESC);
 
+    private static final MemorySegment GET_CONTEXT_INFO_MEMSEG =
+            lookupSymbol("clGetContextInfo");
+    private static final FunctionDescriptor GET_CONTEXT_INFO_DESC =
+            FunctionDescriptor.of(
+                    ValueLayout.JAVA_INT,      // Return type: cl_int
+                    ValueLayout.ADDRESS,       // cl_context context
+                    ValueLayout.JAVA_INT,      // cl_context_info param_name
+                    ValueLayout.JAVA_LONG,     // size_t param_value_size
+                    ValueLayout.ADDRESS,       // void* param_value
+                    ValueLayout.ADDRESS        // size_t* param_value_size_ret
+            );
+    public static final MethodHandle GET_CONTEXT_INFO_HANDLE =
+            linker.downcallHandle(
+                    GET_CONTEXT_INFO_MEMSEG,
+                    GET_CONTEXT_INFO_DESC
+            );
+
     private static final MemorySegment GET_DEVICE_INFO_MEMSEG = lookupSymbol("clGetDeviceInfo");
     private static final FunctionDescriptor GET_DEVICE_INFO_DESC = FunctionDescriptor.of(
             ValueLayout.JAVA_INT,         // Return type: cl_int

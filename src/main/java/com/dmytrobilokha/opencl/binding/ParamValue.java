@@ -291,6 +291,12 @@ public final class ParamValue {
     public static final int CL_PROFILING_COMMAND_END = 0x1283;
     public static final int CL_PROFILING_COMMAND_COMPLETE = 0x1284;
 
+    /* cl_context_info */
+    public static final int CL_CONTEXT_REFERENCE_COUNT = 0x1080;
+    public static final int CL_CONTEXT_DEVICES = 0x1081;
+    public static final int CL_CONTEXT_PROPERTIES = 0x1082;
+    public static final int CL_CONTEXT_NUM_DEVICES = 0x1083;
+
     private ParamValue() {
         // no instance
     }

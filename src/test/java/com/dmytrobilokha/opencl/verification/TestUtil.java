@@ -20,7 +20,7 @@ public class TestUtil {
                 Assert.assertEquals(
                         actualValue,
                         expectedValue,
-                        "For (" + i + ", " + j + ") expected " + expectedValue + ", but got " + actualValue);
+                        "For (" + i + ", " + j + ") ");
             }
         }
     }

@@ -23,6 +23,7 @@ public class AddMatricesVerification {
                 {"addMatrices", 1000, 1000},
                 {"addMatrices", 10000, 10000},
                 {"addMatricesTwo", 10000, 10000},
+                {"addMatricesVectored", 10000, 10000},
                 {"addMatricesLined", 10000, 10000},
         };
     }

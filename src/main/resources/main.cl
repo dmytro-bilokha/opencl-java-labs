@@ -38,3 +38,22 @@ __kernel void addMatricesTwo(__global const float* a, __global const float* b, _
         result[i] = a[i] + b[i];
     }
 }
+
+__kernel void addMatricesVectored(__global const float* a, __global const float* b, __global float* result, const unsigned long elementCount) {
+    int id = get_global_id(0);
+    int globalSize = get_global_size(0);
+    int maxI = elementCount / 4;
+    int step = globalSize;
+    __global float4* a4 = (__global float4 *)a;
+    __global float4* b4 = (__global float4 *)b;
+    __global float4* result4 = (__global float4 *)result;
+    int i = id;
+    for (; i < maxI; i += step) {
+        result4[i] = a4[i] + b4[i];
+    }
+    if (i == maxI) {
+        for (int k = elementCount - elementCount % 4; k < elementCount; k++) {
+            result[k] = a[k] + b[k];
+        }
+    }
+}

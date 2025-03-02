@@ -3,57 +3,47 @@ __kernel void simple_add(__global const float* A, __global const float* B, __glo
 }
 
 __kernel void addMatrices(__global const float* a, __global const float* b, __global float* result, const unsigned long elementCount) {
-    int id = get_global_id(0);
-    int globalSize = get_global_size(0);
-    for (int i = id; i < elementCount; i += globalSize) {
+    const unsigned long id = get_global_id(0);
+    const unsigned long globalSize = get_global_size(0);
+    for (unsigned long i = id; i < elementCount; i += globalSize) {
         result[i] = a[i] + b[i];
     }
 }
 
-__kernel void addMatricesLined(__global const float* a, __global const float* b, __global float* result, const unsigned long elementCount) {
-    int id = get_global_id(0);
-    int globalSize = get_global_size(0);
-    int elementsPerWorker = elementCount / globalSize + 1;
-    int startIndex = elementsPerWorker * id;
-    int endIndex = startIndex + elementsPerWorker;
-    if (endIndex > elementCount) {
-        endIndex = elementCount;
-    }
-    for (int i = startIndex; i < endIndex; i++) {
+__kernel void addMatrices16(__global const float16* a, __global const float16* b, __global float16* result, const unsigned long vectorCount) {
+    const unsigned long id = get_global_id(0);
+    const unsigned long globalSize = get_global_size(0);
+    for (unsigned long i = id; i < vectorCount; i += globalSize) {
         result[i] = a[i] + b[i];
     }
 }
 
-__kernel void addMatricesTwo(__global const float* a, __global const float* b, __global float* result, const unsigned long elementCount) {
-    int id = get_global_id(0);
-    int globalSize = get_global_size(0);
-    int step = globalSize * 2;
-    int maxI = elementCount - 1;
-    int i = id * 2;
-    for (; i < maxI; i += step) {
-        result[i] = a[i] + b[i];
-        result[i + 1] = a[i + 1] + b[i + 1];
-    }
-    if (i == maxI) {
+__kernel void addMatrices8(__global const float8* a, __global const float8* b, __global float8* result, const unsigned long vectorCount) {
+    const unsigned long id = get_global_id(0);
+    const unsigned long globalSize = get_global_size(0);
+    for (unsigned long i = id; i < vectorCount; i += globalSize) {
         result[i] = a[i] + b[i];
     }
 }
 
-__kernel void addMatricesVectored(__global const float* a, __global const float* b, __global float* result, const unsigned long elementCount) {
-    int id = get_global_id(0);
-    int globalSize = get_global_size(0);
-    int maxI = elementCount / 4;
-    int step = globalSize;
-    __global float4* a4 = (__global float4 *)a;
-    __global float4* b4 = (__global float4 *)b;
-    __global float4* result4 = (__global float4 *)result;
-    int i = id;
-    for (; i < maxI; i += step) {
-        result4[i] = a4[i] + b4[i];
+__kernel void addMatrices4(__global const float4* a, __global const float4* b, __global float4* result, const unsigned long vectorCount) {
+    const unsigned long id = get_global_id(0);
+    const unsigned long globalSize = get_global_size(0);
+    for (unsigned long i = id; i < vectorCount; i += globalSize) {
+        result[i] = a[i] + b[i];
     }
-    if (i == maxI) {
-        for (int k = elementCount - elementCount % 4; k < elementCount; k++) {
-            result[k] = a[k] + b[k];
-        }
+}
+
+__kernel void addMatrices2(__global const float2* a, __global const float2* b, __global float2* result, const unsigned long vectorCount) {
+    const unsigned long id = get_global_id(0);
+    const unsigned long globalSize = get_global_size(0);
+    for (unsigned long i = id; i < vectorCount; i += globalSize) {
+        result[i] = a[i] + b[i];
+    }
+}
+
+__kernel void addMatricesLeftover(__global const float* a, __global const float* b, __global float* result, const unsigned long startIndex, const unsigned long endIndex) {
+    for (unsigned long i = startIndex; i < endIndex; i++) {
+        result[i] = a[i] + b[i];
     }
 }

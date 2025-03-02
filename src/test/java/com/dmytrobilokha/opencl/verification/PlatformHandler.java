@@ -7,7 +7,7 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.Test;
 
-@Test(groups = {"verification"})
+@Test(groups = {"correctness", "performance"})
 public class PlatformHandler {
 
     public static Platform platform;

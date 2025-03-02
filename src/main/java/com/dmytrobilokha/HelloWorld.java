@@ -1,10 +1,8 @@
 package com.dmytrobilokha;
 
-import com.dmytrobilokha.memory.MemoryMatrixFactory;
 import com.dmytrobilokha.opencl.Platform;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
-import com.dmytrobilokha.opencl.verification.FloatMatrix;
 
 import java.lang.foreign.ValueLayout;
 import java.util.Arrays;
@@ -51,56 +49,6 @@ public class HelloWorld {
             float[] result = device.enqueueReadBuffer(outputBuffer);
             System.out.println("Result is: " + Arrays.toString(result));
 
-            var matrixFactory = MemoryMatrixFactory.newInstance();
-            var matrixA = matrixFactory.createFloatMatrix(1000, 1000);
-            var verificationMatrixA = FloatMatrix.ofUniRandoms(1000, 1000);
-            matrixA.setData(verificationMatrixA.getData());
-            var bufferA = platform.createBuffer(
-                    ValueLayout.JAVA_FLOAT.byteSize() * 1000 * 1000,
-                    DeviceMemoryAccess.READ_ONLY,
-                    HostMemoryAccess.WRITE_ONLY
-            );
-            var matrixB = matrixFactory.createFloatMatrix(1000, 1000);
-            var verificationMatrixB = FloatMatrix.ofUniRandoms(1000, 1000);
-            matrixB.setData(verificationMatrixB.getData());
-            var bufferB = platform.createBuffer(
-                    ValueLayout.JAVA_FLOAT.byteSize() * 1000 * 1000,
-                    DeviceMemoryAccess.READ_ONLY,
-                    HostMemoryAccess.WRITE_ONLY
-            );
-            var resultMatrix =  matrixFactory.createFloatMatrix(1000, 1000);
-            var resultBuffer = platform.createBuffer(
-                    ValueLayout.JAVA_FLOAT.byteSize() * 1000 * 1000,
-                    DeviceMemoryAccess.WRITE_ONLY,
-                    HostMemoryAccess.READ_ONLY
-            );
-            var addMatricesKernel = platform.createKernel("addMatrices");
-            platform.setKernelArgument(addMatricesKernel, 0, bufferA);
-            platform.setKernelArgument(addMatricesKernel, 1, bufferB);
-            platform.setKernelArgument(addMatricesKernel, 2, resultBuffer);
-            platform.setKernelArgument(addMatricesKernel, 3, 1000 * 1000);
-            device.enqueueWriteBuffer(bufferA, matrixA);
-            device.enqueueWriteBuffer(bufferB, matrixB);
-            device.enqueueNdRangeKernel(addMatricesKernel, 512);
-            device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
-            var verificationResult = verificationMatrixA.add(verificationMatrixB);
-            float[][] verificationData = verificationResult.getData();
-            int errorCount = 0;
-            for (int i = 0; i < verificationResult.getRowDimension(); i++) {
-                float[] row = verificationData[i];
-                for (int j = 0; j < verificationResult.getColumnDimension(); j++) {
-                    float expected = row[j];
-                    float actual = resultMatrix.getAt(i, j);
-                    if (actual != expected) {
-                        System.out.println("For (" + i + ", " + j + ") expected " + expected + ", but got " + actual);
-                        errorCount++;
-                    }
-                    if (errorCount > 10) {
-                        return;
-                    }
-                }
-            }
-            System.out.println("addMatrices provided expected results");
         }
     }
 

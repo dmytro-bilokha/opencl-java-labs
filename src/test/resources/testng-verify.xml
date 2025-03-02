@@ -5,7 +5,8 @@
     <test name="VerificationTest" verbose="1">
         <groups>
             <run>
-                <include name="verification"/>
+                <include name="correctness"/>
+                <include name="performance"/>
                 <exclude name="broken"/>
             </run>
         </groups>

@@ -48,7 +48,6 @@ public class HelloWorld {
             device.enqueueNdRangeKernel(kernel, inputA.length);
             float[] result = device.enqueueReadBuffer(outputBuffer);
             System.out.println("Result is: " + Arrays.toString(result));
-
         }
     }
 

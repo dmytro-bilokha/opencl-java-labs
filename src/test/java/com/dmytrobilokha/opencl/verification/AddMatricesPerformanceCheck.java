@@ -27,13 +27,23 @@ public class AddMatricesPerformanceCheck {
                 {AddMatricesOperation.Flavor.FLOAT4, 10007, 9973},
                 {AddMatricesOperation.Flavor.FLOAT2, 10007, 9973},
                 {AddMatricesOperation.Flavor.FLOAT1, 10007, 9973},
+                {null, 10007, 9973},
         };
     }
 
     @Test(dataProvider = "addMatricesFlavorsSizesProvider")
     public void check(AddMatricesOperation.Flavor flavor, int rows, int columns) {
-        var matrixA = matrixFactory.createFloatMatrix(rows, columns);
         var verificationMatrixA = FloatMatrix.ofUniRandoms(rows, columns);
+        var verificationMatrixB = FloatMatrix.ofUniRandoms(rows, columns);
+        if (flavor == null) {
+            long cpuStartNanos = System.nanoTime();
+            var verificationResult = verificationMatrixA.add(verificationMatrixB);
+            long cpuFinishNanos = System.nanoTime();
+            System.out.println(verificationResult.getRowDimension() + "X" + verificationResult.getColumnDimension()
+                    + " CPU calculation microseconds: " + (cpuFinishNanos - cpuStartNanos) / 1000);
+            return;
+        }
+        var matrixA = matrixFactory.createFloatMatrix(rows, columns);
         matrixA.setData(verificationMatrixA.getData());
         var bufferA = platform.createBuffer(
                 ValueLayout.JAVA_FLOAT.byteSize() * rows * columns,
@@ -41,7 +51,6 @@ public class AddMatricesPerformanceCheck {
                 HostMemoryAccess.WRITE_ONLY
         );
         var matrixB = matrixFactory.createFloatMatrix(rows, columns);
-        var verificationMatrixB = FloatMatrix.ofUniRandoms(rows, columns);
         matrixB.setData(verificationMatrixB.getData());
         var bufferB = platform.createBuffer(
                 ValueLayout.JAVA_FLOAT.byteSize() * rows * columns,

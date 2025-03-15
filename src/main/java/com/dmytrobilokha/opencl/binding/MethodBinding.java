@@ -1,5 +1,6 @@
 package com.dmytrobilokha.opencl.binding;
 
+import com.dmytrobilokha.opencl.PropertyUtil;
 import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
 
 import java.lang.foreign.FunctionDescriptor;
@@ -17,7 +18,7 @@ public final class MethodBinding {
     private static final String DEFAULT_LIB_PATH = "/usr/local/lib/libOpenCL.so";
 
     static {
-        var libPath = System.getProperty(LIB_PATH_PROPERTY, DEFAULT_LIB_PATH);
+        var libPath = PropertyUtil.getAsString(LIB_PATH_PROPERTY, DEFAULT_LIB_PATH);
         try {
             System.load(libPath);
         } catch (RuntimeException e) {

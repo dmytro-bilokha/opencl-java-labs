@@ -43,7 +43,12 @@ public class Platform implements AutoCloseable {
         }
         var defaultPlatformName = queryPlatformName(tmpBufferMemSeg, defaultPlatformIdMemSeg);
         return new Platform(
-                arena, tmpBufferMemSeg, defaultPlatformIdMemSeg, defaultPlatformName, numberOfPlatformDevices, programSource);
+                arena,
+                tmpBufferMemSeg,
+                defaultPlatformIdMemSeg,
+                defaultPlatformName,
+                numberOfPlatformDevices,
+                programSource);
     }
 
     private Platform(
@@ -62,9 +67,10 @@ public class Platform implements AutoCloseable {
         this.deviceIdsMemSeg = queryPlatformDeviceIds(numberOfPlatformDevices);
         this.contextMemSeg = createContext(numberOfPlatformDevices);
         var devicesList = new ArrayList<Device>();
+        var deviceReferenceSource = new DeviceReferenceSource();
         for (int i = 0; i < numberOfPlatformDevices; i++) {
             var deviceIdMemSeg = deviceIdsMemSeg.getAtIndex(ValueLayout.ADDRESS, i);
-            devicesList.add(new Device(arena, contextMemSeg, deviceIdMemSeg));
+            devicesList.add(new Device(arena, deviceReferenceSource, contextMemSeg, deviceIdMemSeg));
         }
         this.devices = List.copyOf(devicesList);
         this.programMemSeg = createProgram(programSource);

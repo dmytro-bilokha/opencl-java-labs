@@ -16,6 +16,7 @@ public class AddMatricesOperation {
     private final Flavor flavor;
     private final Kernel mainKernel;
     private final Kernel leftoversKernel;
+    private long elementsCount;
     private long leftoversCount;
 
     private AddMatricesOperation(Flavor flavor, Platform platform) {
@@ -34,23 +35,24 @@ public class AddMatricesOperation {
     }
 
     public void setArguments(PlatformBuffer a, PlatformBuffer b, PlatformBuffer result, long rows, long columns) {
+        elementsCount = rows * columns;
         platform.setKernelArgument(mainKernel, 0, a);
         platform.setKernelArgument(mainKernel, 1, b);
         platform.setKernelArgument(mainKernel, 2, result);
-        platform.setKernelArgument(mainKernel, 3, rows * columns / flavor.vectorWidth);
-        leftoversCount = rows * columns % flavor.vectorWidth;
+        platform.setKernelArgument(mainKernel, 3, elementsCount / flavor.vectorWidth);
+        leftoversCount = elementsCount % flavor.vectorWidth;
         if (shouldProcessLeftovers()) {
             platform.setKernelArgument(leftoversKernel, 0, a);
             platform.setKernelArgument(leftoversKernel, 1, b);
             platform.setKernelArgument(leftoversKernel, 2, result);
-            platform.setKernelArgument(leftoversKernel, 3, rows * columns - leftoversCount);
-            platform.setKernelArgument(leftoversKernel, 4, rows * columns);
+            platform.setKernelArgument(leftoversKernel, 3, elementsCount - leftoversCount);
+            platform.setKernelArgument(leftoversKernel, 4, elementsCount);
         }
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
-        // TODO: "play" with workSize, make it calculateable
-        var mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, 384, waitForEvents);
+        long workSize = Math.min(device.getNumberOfCores(), elementsCount / flavor.vectorWidth);
+        var mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, workSize, waitForEvents);
         if (shouldProcessLeftovers()) {
             var leftoversKernelEvent = device.enqueueNdRangeKernel(leftoversKernel, 1, waitForEvents);
             return Set.of(mainKernelEvent, leftoversKernelEvent);

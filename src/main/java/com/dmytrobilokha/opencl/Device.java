@@ -18,6 +18,7 @@ public class Device {
     private static final long TMP_BUFFER_BYTE_ALIGN = 16;
 
     private final SegmentAllocator allocator;
+    private final DeviceReferenceSource deviceReferenceSource;
     private final MemorySegment tmpBufferMemSeg;
     private final MemorySegment contextMemSeg;
     private final MemorySegment deviceIdMemSeg;
@@ -31,15 +32,23 @@ public class Device {
     private final long maxWorkItemDimensions;
     private final List<Long> maxWorkItemSizes;
     private final long maxWorkGroupSize;
+    private final long preferredWorkGroupMultiple ;
     private final long maxClockFrequency;
     private final long maxMemoryAllocationSize;
     private final long preferredVectorWidthFloat;
     private final long max2dImageWidth;
     private final long max2dImageHeight;
+    private final long numberOfCores;
     private final MemorySegment commandQueueMemSeg;
 
-    public Device(SegmentAllocator allocator, MemorySegment contextMemSeg, MemorySegment deviceIdMemSeg) {
+    public Device(
+            SegmentAllocator allocator,
+            DeviceReferenceSource deviceReferenceSource,
+            MemorySegment contextMemSeg,
+            MemorySegment deviceIdMemSeg
+    ) {
         this.allocator = allocator;
+        this.deviceReferenceSource = deviceReferenceSource;
         this.tmpBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
         this.contextMemSeg = contextMemSeg;
         this.deviceIdMemSeg = deviceIdMemSeg;
@@ -53,16 +62,35 @@ public class Device {
         this.maxWorkItemDimensions = queryMaxWorkItemDimensions();
         this.maxWorkItemSizes = List.copyOf(queryMaxWorkItemSizes());
         this.maxWorkGroupSize = queryMaxWorkGroupSize();
+        this.preferredWorkGroupMultiple = queryPreferredWorkGroupSizeMultiple();
         this.maxClockFrequency = queryMaxClockFrequency();
         this.maxMemoryAllocationSize = queryMaxMemoryAllocationSize();
         this.preferredVectorWidthFloat = queryPreferredVectorWidthFloat();
         this.max2dImageWidth = queryMax2dImageWidth();
         this.max2dImageHeight = queryMax2dImageHeight();
+        this.numberOfCores = determineNumberOfCores();
         this.commandQueueMemSeg = createCommandQueue();
     }
 
     void releaseResources() {
         releaseCommandQueue();
+    }
+
+    private long determineNumberOfCores() {
+        Long numberOfCores = deviceReferenceSource.getNumberOfCores(name);
+        if (numberOfCores != null) {
+            return numberOfCores;
+        }
+        var uppercasedName = name.toUpperCase();
+        if (uppercasedName.startsWith("NVIDIA")) {
+            // For Turing architecture should multiply by 64
+            return maxComputeUnits * 128;
+        }
+        if (uppercasedName.startsWith("AMD")) {
+            return maxComputeUnits * 64;
+        }
+        // Some wrong-for-everything default
+        return maxComputeUnits * 96;
     }
 
     public void enqueueWriteBuffer(PlatformBuffer buffer, float[] data) {
@@ -312,6 +340,10 @@ public class Device {
         return queryDeviceInfoString(ParamValue.CL_DEVICE_OPENCL_C_VERSION);
     }
 
+    private long queryPreferredWorkGroupSizeMultiple() {
+        return queryDeviceInfoLong(ParamValue.CL_DEVICE_PREFERRED_WORK_GROUP_SIZE_MULTIPLE);
+    }
+
     private String queryDeviceInfoString(long paramValue) {
         MethodBinding.invokeClMethod(
                 MethodBinding.GET_DEVICE_INFO_HANDLE,
@@ -368,6 +400,10 @@ public class Device {
         return maxWorkGroupSize;
     }
 
+    public long getPreferredWorkGroupMultiple() {
+        return preferredWorkGroupMultiple;
+    }
+
     public long getMaxClockFrequency() {
         return maxClockFrequency;
     }
@@ -398,6 +434,10 @@ public class Device {
 
     public long getMax2dImageHeight() {
         return max2dImageHeight;
+    }
+
+    public long getNumberOfCores() {
+        return numberOfCores;
     }
 
 }

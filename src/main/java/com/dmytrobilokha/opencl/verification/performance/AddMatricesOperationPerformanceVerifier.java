@@ -67,9 +67,8 @@ public class AddMatricesOperationPerformanceVerifier implements PerformanceVerif
                         .stream()
                         .map(platform::getEventProfilingInfo)
                         .toList();
-                long flops = numberOfElements * 1_000_000_000
-                        / PerformanceVerificationUtil.calculateTotalDuration(profilingInfos);
-                result.add(new PerformanceMeasurement(matrixSize.toString(), flavor.name(), flops));
+                result.add(PerformanceVerificationUtil.createMeasurement(
+                        matrixSize.toString(), flavor.name(), numberOfElements, profilingInfos));
             }
             platform.releaseBuffer(bufferA);
             platform.releaseBuffer(bufferB);

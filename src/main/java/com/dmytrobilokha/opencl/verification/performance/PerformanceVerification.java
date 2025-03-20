@@ -73,9 +73,17 @@ public class PerformanceVerification {
             for (var measurement : measurements) {
                 reportWriter.println(
                         name + " " + description + " "
-                                + measurement.flavor() + ": " + formatFlops(measurement.flops()));
+                                + measurement.flavor() + ": " + formatFlops(measurement.flops())
+                        + formatRemark(measurement.remark())
+                );
             }
         }
+    }
+
+    private static String formatRemark(String remark) {
+        return remark.isEmpty()
+                ? ""
+                : (" (" + remark + ")");
     }
 
     private static String formatFlops(long flops) {

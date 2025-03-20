@@ -16,7 +16,6 @@ import java.util.Set;
 
 public class AddMatricesOperationCorrectnessVerifier implements CorrectnessVerifier {
 
-    private MemoryMatrixFactory matrixFactory = MemoryMatrixFactory.newInstance();
 
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(
             new MatrixSize(1, 1),
@@ -49,6 +48,7 @@ public class AddMatricesOperationCorrectnessVerifier implements CorrectnessVerif
             MatrixSize matrixSize
     ) {
         reportWriter.print(flavor + " " + matrixSize.rows() + "X" + matrixSize.columns() + ": ");
+        var matrixFactory = MemoryMatrixFactory.newInstance();
         var matrixA = matrixFactory.createFloatMatrix(matrixSize.rows(), matrixSize.columns());
         var verificationMatrixA = FloatMatrix.ofUniRandoms(matrixSize.rows(), matrixSize.columns());
         matrixA.setData(verificationMatrixA.getData());

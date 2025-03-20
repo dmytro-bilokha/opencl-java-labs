@@ -6,4 +6,8 @@ public record MatrixSize(int rows, int columns) {
         return rows * columns;
     }
 
+    @Override
+    public String toString() {
+        return rows + "X" + columns;
+    }
 }

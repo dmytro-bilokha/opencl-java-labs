@@ -360,6 +360,7 @@ public class Device {
         long[] properties = new long[]{
                 ParamValue.CL_QUEUE_PROPERTIES,
                 ParamValue.CL_QUEUE_PROFILING_ENABLE,
+                ParamValue.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
                 0L
         };
         MemorySegment.copy(properties, 0, tmpBufferMemSeg, ValueLayout.JAVA_LONG, 0L, properties.length);

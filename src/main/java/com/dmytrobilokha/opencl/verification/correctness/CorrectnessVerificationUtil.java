@@ -5,6 +5,7 @@ import com.dmytrobilokha.opencl.verification.FloatMatrix;
 
 public final class CorrectnessVerificationUtil {
 
+    private static final float EPSILON = 1E-7f;
     private static final int ERRORS_LIMIT = 5;
 
     private CorrectnessVerificationUtil() {
@@ -29,7 +30,7 @@ public final class CorrectnessVerificationUtil {
                                 .append(", ")
                                 .append(j)
                                 .append(") expected ")
-                                .append(expected)
+                                .append(expectedValue)
                                 .append(", but got ")
                                 .append(actualValue)
                                 .append(System.lineSeparator());
@@ -40,6 +41,24 @@ public final class CorrectnessVerificationUtil {
             }
         }
         return errorReportBuilder.toString();
+    }
+
+    public static float calculateMaxErrorPercent(FloatMemoryMatrix actual, FloatMatrix expected) {
+        float[][] verificationData = expected.getData();
+        float maxErrorPercent = 0;
+        for (int i = 0; i < expected.getRowDimension(); i++) {
+            float[] row = verificationData[i];
+            for (int j = 0; j < expected.getColumnDimension(); j++) {
+                float expectedValue = row[j];
+                float actualValue = actual.getAt(i, j);
+                if (actualValue != expectedValue) {
+                    maxErrorPercent = Math.max(
+                            maxErrorPercent,
+                            100f * Math.abs(actualValue - expectedValue) / (Math.abs(actualValue) + EPSILON));
+                }
+            }
+        }
+        return maxErrorPercent;
     }
 
 }

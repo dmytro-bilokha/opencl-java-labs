@@ -16,6 +16,7 @@ public class PerformanceVerification {
 
     private static final PerformanceVerifier[] VERIFIERS = new PerformanceVerifier[]{
             new AddMatricesOperationPerformanceVerifier(),
+            new SigmoidElementsOperationPerformanceVerifier(),
     };
 
     public static void main(String[] args) {

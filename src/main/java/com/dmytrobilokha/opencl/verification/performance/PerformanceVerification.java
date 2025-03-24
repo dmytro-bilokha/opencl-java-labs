@@ -15,8 +15,8 @@ public class PerformanceVerification {
     private static final long SHOW_LIMIT = 3;
 
     private static final PerformanceVerifier[] VERIFIERS = new PerformanceVerifier[]{
-            new AddMatricesOperationPerformanceVerifier(),
-            new SigmoidElementsOperationPerformanceVerifier(),
+            new AddMatricesPerformanceVerifier(),
+            new SigmoidElementsPerformanceVerifier(),
     };
 
     public static void main(String[] args) {

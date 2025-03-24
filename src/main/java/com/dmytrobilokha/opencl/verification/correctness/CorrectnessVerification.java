@@ -10,8 +10,8 @@ import java.util.Arrays;
 public class CorrectnessVerification {
 
     private static final CorrectnessVerifier[] VERIFIERS = new CorrectnessVerifier[]{
-            new AddMatricesOperationCorrectnessVerifier(),
-            new SigmoidElementsOperationCorrectnessVerifier(),
+            new AddMatricesCorrectnessVerifier(),
+            new SigmoidElementsCorrectnessVerifier(),
     };
 
     public static void main(String[] args) {

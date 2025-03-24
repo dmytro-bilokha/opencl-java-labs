@@ -8,14 +8,14 @@ import com.dmytrobilokha.opencl.Platform;
 import com.dmytrobilokha.opencl.operation.SigmoidElementsOperation;
 import com.dmytrobilokha.opencl.verification.FloatMatrix;
 import com.dmytrobilokha.opencl.verification.MatrixSize;
-import com.dmytrobilokha.opencl.verification.correctness.SigmoidElementsOperationCorrectnessVerifier;
+import com.dmytrobilokha.opencl.verification.correctness.SigmoidElementsCorrectnessVerifier;
 
 import java.lang.foreign.ValueLayout;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class SigmoidElementsOperationPerformanceVerifier implements PerformanceVerifier {
+public class SigmoidElementsPerformanceVerifier implements PerformanceVerifier {
 
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(
             new MatrixSize(10007, 9973),
@@ -81,10 +81,10 @@ public class SigmoidElementsOperationPerformanceVerifier implements PerformanceV
     for GPU calculation performance.
      */
     private long determineCpuPerformance(FloatMatrix input) {
-        var result1 = input.apply(SigmoidElementsOperationCorrectnessVerifier::calculateSigmoid);
-        var result2 = input.apply(SigmoidElementsOperationCorrectnessVerifier::calculateSigmoid);
+        var result1 = input.apply(SigmoidElementsCorrectnessVerifier::calculateSigmoid);
+        var result2 = input.apply(SigmoidElementsCorrectnessVerifier::calculateSigmoid);
         long nanoBefore = System.nanoTime();
-        var result3 = input.apply(SigmoidElementsOperationCorrectnessVerifier::calculateSigmoid);
+        var result3 = input.apply(SigmoidElementsCorrectnessVerifier::calculateSigmoid);
         long nanoAfter = System.nanoTime();
         if (result1.getColumnDimension() > 0 && result2.getColumnDimension() > 0 && result3.getColumnDimension() > 0) {
             return nanoAfter - nanoBefore;

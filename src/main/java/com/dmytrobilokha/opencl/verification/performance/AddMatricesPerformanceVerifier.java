@@ -14,7 +14,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-public class AddMatricesOperationPerformanceVerifier implements PerformanceVerifier {
+public class AddMatricesPerformanceVerifier implements PerformanceVerifier {
 
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(
             new MatrixSize(10007, 9973),

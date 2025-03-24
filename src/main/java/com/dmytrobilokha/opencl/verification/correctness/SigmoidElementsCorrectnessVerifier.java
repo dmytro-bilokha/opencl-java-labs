@@ -14,7 +14,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Set;
 
-public class SigmoidElementsOperationCorrectnessVerifier implements CorrectnessVerifier {
+public class SigmoidElementsCorrectnessVerifier implements CorrectnessVerifier {
 
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(
             new MatrixSize(1, 1),
@@ -73,7 +73,7 @@ public class SigmoidElementsOperationCorrectnessVerifier implements CorrectnessV
         device.enqueueReadBufferToFloatMatrix(outputBuffer, outputMatrix);
         platform.releaseBuffer(inputBuffer);
         platform.releaseBuffer(outputBuffer);
-        var verificationResult = verificationInputMatrix.apply(SigmoidElementsOperationCorrectnessVerifier::calculateSigmoid);
+        var verificationResult = verificationInputMatrix.apply(SigmoidElementsCorrectnessVerifier::calculateSigmoid);
         reportWriter.println(
                 CorrectnessVerificationUtil.calculateMaxErrorPercent(outputMatrix, verificationResult)
                 + "%"

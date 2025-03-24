@@ -14,7 +14,7 @@ import java.lang.foreign.ValueLayout;
 import java.util.List;
 import java.util.Set;
 
-public class AddMatricesOperationCorrectnessVerifier implements CorrectnessVerifier {
+public class AddMatricesCorrectnessVerifier implements CorrectnessVerifier {
 
 
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(

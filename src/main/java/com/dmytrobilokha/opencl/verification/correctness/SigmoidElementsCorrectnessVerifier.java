@@ -16,6 +16,7 @@ import java.util.Set;
 
 public class SigmoidElementsCorrectnessVerifier implements CorrectnessVerifier {
 
+    private static final float ERROR_LIMIT = 2.5E-5f; // max error in %
     private static final List<MatrixSize> SIZES_TO_CHECK = List.of(
             new MatrixSize(1, 1),
             new MatrixSize(3, 5),
@@ -74,11 +75,9 @@ public class SigmoidElementsCorrectnessVerifier implements CorrectnessVerifier {
         platform.releaseBuffer(inputBuffer);
         platform.releaseBuffer(outputBuffer);
         var verificationResult = verificationInputMatrix.apply(SigmoidElementsCorrectnessVerifier::calculateSigmoid);
-        reportWriter.println(
-                CorrectnessVerificationUtil.calculateMaxErrorPercent(outputMatrix, verificationResult)
-                + "%"
-        );
-        return true;
+        float maxErrorPercent = CorrectnessVerificationUtil.calculateMaxErrorPercent(outputMatrix, verificationResult);
+        reportWriter.println(maxErrorPercent + "%");
+        return maxErrorPercent < ERROR_LIMIT;
     }
 
 }

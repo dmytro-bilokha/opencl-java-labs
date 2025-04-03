@@ -246,6 +246,30 @@ public class Device {
         return Event.fromPointer(eventMemSeg);
     }
 
+    public Event enqueueNdRangeKernel(
+            Kernel kernel,
+            long[] globalWorkSize,
+            Set<Event> eventsToWaitFor
+    ) {
+        for (int i = 0; i < globalWorkSize.length; i++) {
+            tmpBufferMemSeg.setAtIndex(ValueLayout.JAVA_LONG, i, globalWorkSize[i]);
+        }
+        // TODO: switch to using tmpBufferMemSeg here as well
+        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
+                commandQueueMemSeg,
+                kernel.getKernelMemSeg(),
+                globalWorkSize.length,
+                MemorySegment.NULL,
+                tmpBufferMemSeg,
+                MemorySegment.NULL,
+                eventsToWaitFor.size(),
+                buildEventsArray(eventsToWaitFor),
+                eventMemSeg);
+        return Event.fromPointer(eventMemSeg);
+    }
+
     private MemorySegment buildEventsArray(Set<Event> events) {
         if (events.isEmpty()) {
             return MemorySegment.NULL;

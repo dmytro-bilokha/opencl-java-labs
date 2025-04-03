@@ -12,6 +12,7 @@ public class CorrectnessVerification {
     private static final CorrectnessVerifier[] VERIFIERS = new CorrectnessVerifier[]{
             new AddMatricesCorrectnessVerifier(),
             new SigmoidElementsCorrectnessVerifier(),
+            new MultiplyMatricesCorrectnessVerifier(),
     };
 
     public static void main(String[] args) {

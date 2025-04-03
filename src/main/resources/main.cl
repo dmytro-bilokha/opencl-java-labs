@@ -146,3 +146,37 @@ __kernel void sigmoidElementsLeftoverN(__global const float* input, __global flo
         output[i] = 1.0f / (1.0f + native_exp(-input[i]));
     }
 }
+
+__kernel void multiplyMatricesNaive(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+        ) {
+    const unsigned long globalRow = get_global_id(0);
+    const unsigned long globalColumn = get_global_id(1);
+    float resultElement = 0.0f;
+    for (unsigned long k = 0; k < kDimension; k++) {
+        resultElement += a[globalRow * kDimension + k] * b[k * nDimension + globalColumn];
+    }
+    result[globalRow * nDimension + globalColumn] = resultElement;
+}
+
+__kernel void multiplyMatricesNaiveO(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+        ) {
+    const unsigned long globalRow = get_global_id(1);
+    const unsigned long globalColumn = get_global_id(0);
+    float resultElement = 0.0f;
+    for (unsigned long k = 0; k < kDimension; k++) {
+        resultElement += a[globalRow * kDimension + k] * b[k * nDimension + globalColumn];
+    }
+    result[globalRow * nDimension + globalColumn] = resultElement;
+}

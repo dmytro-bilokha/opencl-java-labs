@@ -55,4 +55,17 @@ public class FloatMemoryMatrix {
                             + row + ", " + column + ") for matrix with size ("+ rows + ", " + columns + ")");
         }
     }
+
+    public long getRows() {
+        return rows;
+    }
+
+    public long getColumns() {
+        return columns;
+    }
+
+    public long getNumberOfElements() {
+        return rows * columns;
+    }
+
 }

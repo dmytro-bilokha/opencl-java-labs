@@ -4,6 +4,7 @@ import com.dmytrobilokha.FileUtil;
 import com.dmytrobilokha.opencl.Platform;
 
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -14,18 +15,42 @@ public class PerformanceVerification {
 
     private static final long SHOW_LIMIT = 3;
 
-    private static final PerformanceVerifier[] VERIFIERS = new PerformanceVerifier[]{
+    private static final List<PerformanceVerifier> ALL_VERIFIERS = List.of(
             new AddMatricesPerformanceVerifier(),
             new SigmoidElementsPerformanceVerifier(),
-    };
+            new MultiplyMatricesPerformanceVerifier()
+    );
 
     public static void main(String[] args) {
         boolean verbose = Arrays.stream(args)
                 .anyMatch(arg -> "-v".equals(arg) || "--verbose".equals(arg));
+        var verifierFilters = Arrays.stream(args)
+                .filter(arg -> !arg.startsWith("-"))
+                .collect(Collectors.toSet());
+        List<PerformanceVerifier> verifiers;
+        if (verifierFilters.isEmpty()) {
+            verifiers = ALL_VERIFIERS;
+        } else {
+            verifiers = new ArrayList<>();
+            for (String verifierFilter : verifierFilters) {
+                ALL_VERIFIERS
+                        .stream()
+                        .filter(verifier ->
+                                verifier.getClass()
+                                        .getSimpleName()
+                                        .toUpperCase()
+                                        .startsWith(verifierFilter.toUpperCase())
+                        )
+                        .forEach(verifiers::add);
+            }
+        }
         PrintWriter reportWriter = new PrintWriter(System.out);
+        if (verifiers.isEmpty()) {
+            reportWriter.println("No verifiers found for filters: " + String.join(",", verifierFilters));
+        }
         try (var platform = Platform.initDefault(FileUtil.readStringResource("main.cl"))) {
             var device = platform.getDevices().getFirst();
-            for (var verifier : VERIFIERS) {
+            for (var verifier : verifiers) {
                 var performanceMeasurements = verifier.verify(platform, device);
                 reportPerformanceMeasurements(verifier.getName(), performanceMeasurements, reportWriter, verbose);
             }

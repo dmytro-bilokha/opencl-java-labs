@@ -99,32 +99,6 @@ public class Device {
         return maxComputeUnits * 96;
     }
 
-    // TODO: remove this method, there are better alternatives below
-    public void enqueueWriteBuffer(PlatformBuffer buffer, float[] data) {
-        long dataSize = data.length * ValueLayout.JAVA_FLOAT.byteSize();
-        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
-                || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
-            throw new OpenClRuntimeException(
-                    "Unable to write data to the buffer with no write access for host: " + buffer);
-        }
-        if (buffer.getByteSize() < dataSize) {
-            throw new OpenClRuntimeException("Provided buffer is too small: " + buffer);
-        }
-        var inputMemSeg = allocator.allocateFrom(ValueLayout.JAVA_FLOAT, data);
-        MethodBinding.invokeClMethod(
-                MethodBinding.ENQUEUE_WRITE_BUFFER_HANDLE,
-                commandQueueMemSeg,
-                buffer.getBufferMemSeg(),
-                ParamValue.CL_TRUE,
-                0L,
-                dataSize,
-                inputMemSeg,
-                0,
-                MemorySegment.NULL,
-                MemorySegment.NULL
-        );
-    }
-
     public Event enqueueWriteBuffer(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
                 || buffer.getHostMemoryAccess() == HostMemoryAccess.READ_ONLY) {
@@ -194,27 +168,6 @@ public class Device {
                 MemorySegment.NULL,
                 aBufferMemSeg);
         return Event.fromPointer(aBufferMemSeg);
-    }
-
-    public float[] enqueueReadBuffer(PlatformBuffer buffer) {
-        if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
-                || buffer.getHostMemoryAccess() == HostMemoryAccess.WRITE_ONLY) {
-            throw new OpenClRuntimeException("Unable to read data from the buffer with no read access for host: "
-                    + buffer);
-        }
-        var resultMemSeg = allocator.allocate(buffer.getByteSize());
-        MethodBinding.invokeClMethod(
-                MethodBinding.ENQUEUE_READ_BUFFER_HANDLE,
-                commandQueueMemSeg,
-                buffer.getBufferMemSeg(),
-                ParamValue.CL_TRUE,
-                0L,
-                buffer.getByteSize(),
-                resultMemSeg,
-                0,
-                MemorySegment.NULL,
-                MemorySegment.NULL);
-        return resultMemSeg.toArray(ValueLayout.JAVA_FLOAT);
     }
 
     public Event enqueueNdRangeKernel(Kernel kernel, long workSize) {

@@ -1,15 +1,11 @@
 package com.dmytrobilokha;
 
 import com.dmytrobilokha.opencl.Platform;
-import com.dmytrobilokha.opencl.DeviceMemoryAccess;
-import com.dmytrobilokha.opencl.HostMemoryAccess;
 
-import java.lang.foreign.ValueLayout;
-import java.util.Arrays;
-
-public class HelloWorld {
+public class ShowInfo {
 
     public static void main(String[] args) {
+        // TODO: consider making CL source non-mandatory to init a platform
         try (var platform = Platform.initDefault(FileUtil.readStringResource("main.cl"))) {
             System.out.println("Default platform name: " + platform.getName());
             System.out.println("Default platform version: " + platform.getVersion());
@@ -32,24 +28,6 @@ public class HelloWorld {
             System.out.println("Device max 2D image width: " + device.getMax2dImageWidth());
             System.out.println("Device max 2D image height: " + device.getMax2dImageHeight());
             System.out.println("Device preferred float vector width: " + device.getPreferredVectorWidthFloat());
-
-            float[] inputA = new float[]{1f, 3.5f, 4.0f, -11f, 42f, 99f, 0.01f, 1f, 0f, 10f};
-            float[] inputB = new float[]{-1f, 13.5f, 1.0f, 1f, 0f, 1f, 100.01f, 1f, 0f, 10f};
-            var inputABuffer = platform.createBuffer(inputA.length * ValueLayout.JAVA_FLOAT.byteSize(),
-                    DeviceMemoryAccess.READ_ONLY, HostMemoryAccess.WRITE_ONLY);
-            var inputBBuffer = platform.createBuffer(inputB.length * ValueLayout.JAVA_FLOAT.byteSize(),
-                    DeviceMemoryAccess.READ_ONLY, HostMemoryAccess.WRITE_ONLY);
-            var outputBuffer = platform.createBuffer(inputA.length * ValueLayout.JAVA_FLOAT.byteSize(),
-                    DeviceMemoryAccess.WRITE_ONLY, HostMemoryAccess.READ_ONLY);
-            var kernel = platform.createKernel("simple_add");
-            platform.setKernelArgument(kernel, 0, inputABuffer);
-            platform.setKernelArgument(kernel, 1, inputBBuffer);
-            platform.setKernelArgument(kernel, 2, outputBuffer);
-            device.enqueueWriteBuffer(inputABuffer, inputA);
-            device.enqueueWriteBuffer(inputBBuffer, inputB);
-            device.enqueueNdRangeKernel(kernel, inputA.length);
-            float[] result = device.enqueueReadBuffer(outputBuffer);
-            System.out.println("Result is: " + Arrays.toString(result));
         }
     }
 

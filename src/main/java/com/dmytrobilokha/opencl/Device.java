@@ -19,7 +19,10 @@ public class Device {
 
     private final SegmentAllocator allocator;
     private final DeviceReferenceSource deviceReferenceSource;
-    private final MemorySegment tmpBufferMemSeg;
+    private final MemorySegment aBufferMemSeg;
+    private final MemorySegment bBufferMemSeg;
+    private final MemorySegment cBufferMemSeg;
+    private final MemorySegment xBufferMemSeg;
     private final MemorySegment contextMemSeg;
     private final MemorySegment deviceIdMemSeg;
     private final MemorySegment errorCodeMemSeg;
@@ -49,7 +52,10 @@ public class Device {
     ) {
         this.allocator = allocator;
         this.deviceReferenceSource = deviceReferenceSource;
-        this.tmpBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
+        this.aBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
+        this.bBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
+        this.cBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
+        this.xBufferMemSeg = allocator.allocate(TMP_BUFFER_BYTE_SIZE, TMP_BUFFER_BYTE_ALIGN);
         this.contextMemSeg = contextMemSeg;
         this.deviceIdMemSeg = deviceIdMemSeg;
         this.errorCodeMemSeg = allocator.allocate(ValueLayout.JAVA_INT);
@@ -93,6 +99,7 @@ public class Device {
         return maxComputeUnits * 96;
     }
 
+    // TODO: remove this method, there are better alternatives below
     public void enqueueWriteBuffer(PlatformBuffer buffer, float[] data) {
         long dataSize = data.length * ValueLayout.JAVA_FLOAT.byteSize();
         if (buffer.getHostMemoryAccess() == HostMemoryAccess.NO_ACCESS
@@ -137,9 +144,9 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                tmpBufferMemSeg
+                aBufferMemSeg
         );
-        return Event.fromPointer(tmpBufferMemSeg);
+        return Event.fromPointer(aBufferMemSeg);
     }
 
     public Event enqueueWriteBufferAsync(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
@@ -161,9 +168,9 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                tmpBufferMemSeg
+                aBufferMemSeg
         );
-        return Event.fromPointer(tmpBufferMemSeg);
+        return Event.fromPointer(aBufferMemSeg);
     }
 
     public Event enqueueReadBufferToFloatMatrix(PlatformBuffer buffer, FloatMemoryMatrix memoryMatrix) {
@@ -185,8 +192,8 @@ public class Device {
                 memoryMatrix.getMemorySegment(),
                 0,
                 MemorySegment.NULL,
-                tmpBufferMemSeg);
-        return Event.fromPointer(tmpBufferMemSeg);
+                aBufferMemSeg);
+        return Event.fromPointer(aBufferMemSeg);
     }
 
     public float[] enqueueReadBuffer(PlatformBuffer buffer) {
@@ -211,39 +218,35 @@ public class Device {
     }
 
     public Event enqueueNdRangeKernel(Kernel kernel, long workSize) {
-        tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
-        // TODO: switch to using tmpBufferMemSeg here as well
-        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
+        aBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
                 kernel.getKernelMemSeg(),
                 1,
                 MemorySegment.NULL,
-                tmpBufferMemSeg,
+                aBufferMemSeg,
                 MemorySegment.NULL,
                 0,
                 MemorySegment.NULL,
-                eventMemSeg);
-        return Event.fromPointer(eventMemSeg);
+                bBufferMemSeg);
+        return Event.fromPointer(bBufferMemSeg);
     }
 
     public Event enqueueNdRangeKernel(Kernel kernel, long workSize, Set<Event> eventsToWaitFor) {
-        tmpBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
-        // TODO: switch to using tmpBufferMemSeg here as well
-        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
+        aBufferMemSeg.set(ValueLayout.JAVA_LONG, 0, workSize);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
                 kernel.getKernelMemSeg(),
                 1,
                 MemorySegment.NULL,
-                tmpBufferMemSeg,
+                aBufferMemSeg,
                 MemorySegment.NULL,
                 eventsToWaitFor.size(),
                 buildEventsArray(eventsToWaitFor),
-                eventMemSeg);
-        return Event.fromPointer(eventMemSeg);
+                bBufferMemSeg);
+        return Event.fromPointer(bBufferMemSeg);
     }
 
     public Event enqueueNdRangeKernel(
@@ -252,36 +255,63 @@ public class Device {
             Set<Event> eventsToWaitFor
     ) {
         for (int i = 0; i < globalWorkSize.length; i++) {
-            tmpBufferMemSeg.setAtIndex(ValueLayout.JAVA_LONG, i, globalWorkSize[i]);
+            aBufferMemSeg.setAtIndex(ValueLayout.JAVA_LONG, i, globalWorkSize[i]);
         }
-        // TODO: switch to using tmpBufferMemSeg here as well
-        var eventMemSeg = allocator.allocate(ValueLayout.ADDRESS);
         MethodBinding.invokeClMethod(
                 MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
                 commandQueueMemSeg,
                 kernel.getKernelMemSeg(),
                 globalWorkSize.length,
                 MemorySegment.NULL,
-                tmpBufferMemSeg,
+                aBufferMemSeg,
                 MemorySegment.NULL,
                 eventsToWaitFor.size(),
                 buildEventsArray(eventsToWaitFor),
-                eventMemSeg);
-        return Event.fromPointer(eventMemSeg);
+                bBufferMemSeg);
+        return Event.fromPointer(bBufferMemSeg);
+    }
+
+    public Event enqueueNdRangeKernel(
+            Kernel kernel,
+            long[] localWorkSize,
+            long[] globalWorkSize,
+            Set<Event> eventsToWaitFor
+    ) {
+        if (localWorkSize.length != globalWorkSize.length) {
+            throw new OpenClRuntimeException(
+                    "Length of local and global work sizes should be the same, but got localWorkSize.length="
+                            + localWorkSize.length
+                            + " globalWorkSize.length="
+                            + globalWorkSize.length);
+        }
+        for (int i = 0; i < globalWorkSize.length; i++) {
+            aBufferMemSeg.setAtIndex(ValueLayout.JAVA_LONG, i, globalWorkSize[i]);
+            bBufferMemSeg.setAtIndex(ValueLayout.JAVA_LONG, i, localWorkSize[i]);
+        }
+        MethodBinding.invokeClMethod(
+                MethodBinding.ENQUEUE_ND_RANGE_KERNEL_HANDLE,
+                commandQueueMemSeg,
+                kernel.getKernelMemSeg(),
+                globalWorkSize.length,
+                MemorySegment.NULL,
+                aBufferMemSeg,
+                bBufferMemSeg,
+                eventsToWaitFor.size(),
+                buildEventsArray(eventsToWaitFor),
+                cBufferMemSeg);
+        return Event.fromPointer(cBufferMemSeg);
     }
 
     private MemorySegment buildEventsArray(Set<Event> events) {
         if (events.isEmpty()) {
             return MemorySegment.NULL;
         }
-        // TODO: use tmpBuffer instead of allocating new
-        var eventsArrayMemSeg = allocator.allocate(ValueLayout.ADDRESS, events.size());
         var eventIterator = events.iterator();
         for (int i = 0; eventIterator.hasNext(); i++) {
             var event = eventIterator.next();
-            eventsArrayMemSeg.setAtIndex(ValueLayout.ADDRESS, i, event.getEventMemSeg());
+            xBufferMemSeg.setAtIndex(ValueLayout.ADDRESS, i, event.getEventMemSeg());
         }
-        return eventsArrayMemSeg;
+        return xBufferMemSeg;
     }
 
     private long queryGlobalMemorySize() {
@@ -305,13 +335,13 @@ public class Device {
                 MethodBinding.GET_DEVICE_INFO_HANDLE,
                 deviceIdMemSeg,
                 ParamValue.CL_DEVICE_MAX_WORK_ITEM_SIZES,
-                tmpBufferMemSeg.byteSize(),
-                tmpBufferMemSeg,
+                aBufferMemSeg.byteSize(),
+                aBufferMemSeg,
                 MemorySegment.NULL
         );
         var result = new ArrayList<Long>();
         for (int i = 0; i < maxWorkItemDimensions; i++) {
-            result.add(tmpBufferMemSeg.getAtIndex(ValueLayout.JAVA_LONG, i));
+            result.add(aBufferMemSeg.getAtIndex(ValueLayout.JAVA_LONG, i));
         }
         return result;
     }
@@ -345,11 +375,11 @@ public class Device {
                 MethodBinding.GET_DEVICE_INFO_HANDLE,
                 deviceIdMemSeg,
                 paramValue,
-                tmpBufferMemSeg.byteSize(),
-                tmpBufferMemSeg,
+                aBufferMemSeg.byteSize(),
+                aBufferMemSeg,
                 MemorySegment.NULL
         );
-        return tmpBufferMemSeg.get(ValueLayout.JAVA_LONG, 0);
+        return aBufferMemSeg.get(ValueLayout.JAVA_LONG, 0);
     }
 
     private String queryDeviceName() {
@@ -373,11 +403,11 @@ public class Device {
                 MethodBinding.GET_DEVICE_INFO_HANDLE,
                 deviceIdMemSeg,
                 paramValue,
-                tmpBufferMemSeg.byteSize(),
-                tmpBufferMemSeg,
+                aBufferMemSeg.byteSize(),
+                aBufferMemSeg,
                 MemorySegment.NULL
         );
-        return tmpBufferMemSeg.getString(0);
+        return aBufferMemSeg.getString(0);
     }
 
     private MemorySegment createCommandQueue() {
@@ -387,13 +417,13 @@ public class Device {
                 ParamValue.CL_QUEUE_OUT_OF_ORDER_EXEC_MODE_ENABLE,
                 0L
         };
-        MemorySegment.copy(properties, 0, tmpBufferMemSeg, ValueLayout.JAVA_LONG, 0L, properties.length);
+        MemorySegment.copy(properties, 0, aBufferMemSeg, ValueLayout.JAVA_LONG, 0L, properties.length);
         return MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,
                 MethodBinding.CREATE_COMMAND_QUEUE_WITH_PROPERTIES_HANDLE,
                 contextMemSeg,
                 deviceIdMemSeg,
-                tmpBufferMemSeg,
+                aBufferMemSeg,
                 errorCodeMemSeg);
     }
 

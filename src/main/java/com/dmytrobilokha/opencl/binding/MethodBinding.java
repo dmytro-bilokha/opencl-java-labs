@@ -419,7 +419,8 @@ public final class MethodBinding {
         int errorCode = errorCodeMemSeg.get(ValueLayout.JAVA_INT, 0);
         if (!ReturnValue.CL_SUCCESS.matches(errorCode)) {
             throw new OpenClRuntimeException(
-                    "Error " + ReturnValue.convertToString(errorCode) + " while calling " + methodHandle);
+                    "Error " + ReturnValue.convertToString(errorCode) + " while calling " + methodHandle,
+                    ReturnValue.fromIntValue(errorCode));
         }
         return returnValue;
     }
@@ -435,7 +436,8 @@ public final class MethodBinding {
         if (!ReturnValue.CL_SUCCESS.matches(returnValue)) {
             throw new OpenClRuntimeException(
                     "Error " + ReturnValue.convertToString(returnValue) + " while calling " + methodHandle
-                + " with parameters: " + Arrays.toString(arguments));
+                + " with parameters: " + Arrays.toString(arguments),
+                    ReturnValue.fromIntValue(returnValue));
         }
     }
 }

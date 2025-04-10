@@ -2,6 +2,7 @@ package com.dmytrobilokha.opencl;
 
 import com.dmytrobilokha.opencl.binding.ParamValue;
 import com.dmytrobilokha.opencl.binding.MethodBinding;
+import com.dmytrobilokha.opencl.binding.ReturnValue;
 import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
 
 import java.lang.foreign.Arena;
@@ -209,15 +210,52 @@ public class Platform implements AutoCloseable {
     }
 
     private void buildProgram() {
+        try {
+            MethodBinding.invokeClMethod(
+                    MethodBinding.BUILD_PROGRAM_HANDLE,
+                    programMemSeg,
+                    devices.size(),
+                    deviceIdsMemSeg,
+                    MemorySegment.NULL,
+                    MemorySegment.NULL,
+                    MemorySegment.NULL
+            );
+        } catch (OpenClRuntimeException e) {
+            if (e.getClErrorCode() == ReturnValue.CL_BUILD_PROGRAM_FAILURE) {
+                throw new OpenClRuntimeException(
+                        "Failed to build the program" + System.lineSeparator()
+                        + devices.stream()
+                                .map(d -> d.getName() + " build log:" + System.lineSeparator() + fetchProgramBuildLog(d)),
+                        ReturnValue.CL_BUILD_PROGRAM_FAILURE,
+                        e
+                );
+            }
+            throw e;
+        }
+    }
+
+    private String fetchProgramBuildLog(Device device) {
         MethodBinding.invokeClMethod(
-                MethodBinding.BUILD_PROGRAM_HANDLE,
+                MethodBinding.GET_PROGRAM_BUILD_INFO_HANDLE,
                 programMemSeg,
-                devices.size(),
-                deviceIdsMemSeg,
+                device.getDeviceIdMemSeg(),
+                ParamValue.CL_PROGRAM_BUILD_LOG,
+                0,
                 MemorySegment.NULL,
-                MemorySegment.NULL,
+                tmpBufferMemSeg
+        );
+        long logSize = tmpBufferMemSeg.get(ValueLayout.JAVA_LONG, 0);
+        var logMemSeg = arena.allocate(logSize);
+        MethodBinding.invokeClMethod(
+                MethodBinding.GET_PROGRAM_BUILD_INFO_HANDLE,
+                programMemSeg,
+                device.getDeviceIdMemSeg(),
+                ParamValue.CL_PROGRAM_BUILD_LOG,
+                logSize,
+                logMemSeg,
                 MemorySegment.NULL
         );
+        return logMemSeg.getString(0);
     }
 
     private String queryVersion() {

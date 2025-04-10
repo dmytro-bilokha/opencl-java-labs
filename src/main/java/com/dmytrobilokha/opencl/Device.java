@@ -448,4 +448,8 @@ public class Device {
         return numberOfCores;
     }
 
+    MemorySegment getDeviceIdMemSeg() {
+        return deviceIdMemSeg;
+    }
+
 }

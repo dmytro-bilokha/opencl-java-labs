@@ -82,7 +82,8 @@ public enum ReturnValue {
     CL_INVALID_ACCELERATOR_TYPE_INTEL(-1095),
     CL_INVALID_ACCELERATOR_DESCRIPTOR_INTEL(-1096),
     CL_ACCELERATOR_TYPE_NOT_SUPPORTED_INTEL(-1097),
-    CL_CANCELLED_IMG(-1126);
+    CL_CANCELLED_IMG(-1126),
+    UNKNOWN(Integer.MAX_VALUE);
 
     private final int intValue;
 
@@ -96,7 +97,7 @@ public enum ReturnValue {
                 return item;
             }
         }
-        throw new IllegalArgumentException("Unable to map " + value);
+        return UNKNOWN;
     }
 
     public static String convertToString(int value) {
@@ -105,7 +106,7 @@ public enum ReturnValue {
                 return item.name();
             }
         }
-        return String.valueOf(value);
+        return UNKNOWN.name() + "(" + value + ")";
     }
 
     public int getIntValue() {

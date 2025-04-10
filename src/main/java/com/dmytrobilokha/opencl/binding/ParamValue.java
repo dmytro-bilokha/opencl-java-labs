@@ -297,6 +297,9 @@ public final class ParamValue {
     public static final int CL_CONTEXT_PROPERTIES = 0x1082;
     public static final int CL_CONTEXT_NUM_DEVICES = 0x1083;
 
+    /* cl_program_build_info */
+    public static final int  CL_PROGRAM_BUILD_LOG = 0x1183;
+
     private ParamValue() {
         // no instance
     }

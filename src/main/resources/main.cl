@@ -176,3 +176,34 @@ __kernel void multiplyMatricesNaiveO(
     }
     result[globalRow * nDimension + globalColumn] = resultElement;
 }
+
+__kernel void multiplyMatricesTile32(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned long tileSize = 32;
+    const unsigned long localRow = get_local_id(1);
+    const unsigned long localColumn = get_local_id(0);
+    const unsigned long globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned long globalColumn = tileSize * get_group_id(0) + localColumn;
+    __local float submatrixA[tileSize][tileSize];
+    __local float submatrixB[tileSize][tileSize];
+    float resultElement = 0.0f;
+    const unsigned long numberOfTiles = kDimension / tileSize;
+    for (unsigned long tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned long tiledRow = tileSize * tile + localRow;
+        const unsigned long tiledColumn = tileSize * tile + localColumn;
+        submatrixA[localRow][localColumn] = a[globalRow * kDimension + tiledColumn];
+        submatrixB[localRow][localColumn] = b[tiledRow * nDimension + globalColumn];
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned long k = 0; k < tileSize; k++) {
+            resultElement += submatrixA[localRow][k] * submatrixB[k][localColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    result[globalRow * nDimension + globalColumn] = resultElement;
+}

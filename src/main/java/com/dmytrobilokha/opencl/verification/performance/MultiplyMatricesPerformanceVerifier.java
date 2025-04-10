@@ -19,7 +19,8 @@ public class MultiplyMatricesPerformanceVerifier implements PerformanceVerifier 
     private static final List<MatricesMultiplicationSize> SIZES_TO_CHECK = List.of(
             new MatricesMultiplicationSize(64, 64, 64),
             new MatricesMultiplicationSize(128, 128, 128),
-            new MatricesMultiplicationSize(256, 256, 256)
+            new MatricesMultiplicationSize(256, 256, 256),
+            new MatricesMultiplicationSize(512, 512, 512)
     );
 
     @Override

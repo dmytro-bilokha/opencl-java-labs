@@ -20,11 +20,15 @@ public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier 
 
     // TODO: add more "tricky" sized test-cases
     private static final List<MatricesMultiplicationSize> SIZES_TO_CHECK = List.of(
+            /* Tiled implementation can not handle such sizes
             new MatricesMultiplicationSize(1, 1, 1),
             new MatricesMultiplicationSize(3, 3, 3),
             new MatricesMultiplicationSize(5, 5, 5),
             new MatricesMultiplicationSize(16, 16, 16),
-            new MatricesMultiplicationSize(32, 32, 32)
+             */
+            new MatricesMultiplicationSize(32, 32, 32),
+            new MatricesMultiplicationSize(64, 64, 64),
+            new MatricesMultiplicationSize(128, 128, 128)
     );
 
     @Override

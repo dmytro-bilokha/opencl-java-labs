@@ -40,19 +40,25 @@ public class MultiplyMatricesOperation {
         platform.setKernelArgument(mainKernel, 5, nDimension);
         if (flavor == Flavor.FLOAT_N) {
             workSize = new long[]{mDimension, nDimension};
-        } else if (flavor == Flavor.FLOAT_NO) {
+        } else {
             workSize = new long[]{nDimension, mDimension};
         }
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
-        var mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, workSize, waitForEvents);
+        Event mainKernelEvent;
+        if (flavor == Flavor.FLOAT_TILE_32) {
+            mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, new long[]{32, 32}, workSize, waitForEvents);
+        } else {
+            mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, workSize, waitForEvents);
+        }
         return Set.of(mainKernelEvent);
     }
 
     public enum Flavor {
         FLOAT_N("multiplyMatricesNaive", 1),
         FLOAT_NO("multiplyMatricesNaiveO", 1),
+        FLOAT_TILE_32("multiplyMatricesTile32", 1),
         ;
 
         final String kernelName;

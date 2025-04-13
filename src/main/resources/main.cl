@@ -207,3 +207,120 @@ __kernel void multiplyMatricesTile32(
     }
     result[globalRow * nDimension + globalColumn] = resultElement;
 }
+
+__kernel void multiplyMatricesTile32i(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned int mDimension,
+        const unsigned int kDimension,
+        const unsigned int nDimension
+) {
+    const unsigned int tileSize = 32;
+    const unsigned int localRow = get_local_id(1);
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned int globalColumn = tileSize * get_group_id(0) + localColumn;
+    __local float submatrixA[tileSize][tileSize];
+    __local float submatrixB[tileSize][tileSize];
+    float resultElement = 0.0f;
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned int tiledRow = tileSize * tile + localRow;
+        const unsigned int tiledColumn = tileSize * tile + localColumn;
+        submatrixA[localRow][localColumn] = a[globalRow * kDimension + tiledColumn];
+        submatrixB[localRow][localColumn] = b[tiledRow * nDimension + globalColumn];
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned int k = 0; k < tileSize; k++) {
+            resultElement += submatrixA[localRow][k] * submatrixB[k][localColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    result[globalRow * nDimension + globalColumn] = resultElement;
+}
+
+__kernel void multiplyMatricesTile32M(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned long workPerThread = 8;
+    const unsigned long tileSize = 32;
+    const unsigned long maxLocalColumn = tileSize / workPerThread;
+    const unsigned long localRow = get_local_id(1);
+    const unsigned long localColumn = get_local_id(0);
+    const unsigned long globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned long globalColumn = tileSize * get_group_id(0) + localColumn;
+    __local float submatrixA[tileSize][tileSize];
+    __local float submatrixB[tileSize][tileSize];
+    float resultElements[workPerThread];
+    for (unsigned long i = 0; i < workPerThread; i++) {
+        resultElements[i] = 0.0f;
+    }
+    const unsigned long numberOfTiles = kDimension / tileSize;
+    for (unsigned long tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned long tiledRow = tileSize * tile + localRow;
+        const unsigned long tiledColumn = tileSize * tile + localColumn;
+        for (unsigned long i = 0; i < workPerThread; i++) {
+            submatrixA[localRow][localColumn + i * maxLocalColumn] = a[globalRow * kDimension + tiledColumn + i * maxLocalColumn];
+            submatrixB[localRow][localColumn + i * maxLocalColumn] = b[tiledRow * nDimension + globalColumn + i * maxLocalColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned long k = 0; k < tileSize; k++) {
+            const float submatrixElement = submatrixA[localRow][k];
+            for (unsigned long i = 0; i < workPerThread; i++) {
+                resultElements[i] += submatrixElement * submatrixB[k][localColumn + i * maxLocalColumn];
+            }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    for (unsigned long i = 0; i < workPerThread; i++) {
+        result[globalRow * nDimension + globalColumn + i * maxLocalColumn] = resultElements[i];
+    }
+}
+
+__kernel void multiplyMatricesTile32Mi(
+        __global const float* a,
+        __global const float* b,
+        __global float* result,
+        const unsigned int mDimension,
+        const unsigned int kDimension,
+        const unsigned int nDimension
+) {
+    const unsigned int workPerThread = 8;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / workPerThread;
+    const unsigned int localRow = get_local_id(1);
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned int globalColumn = tileSize * get_group_id(0) + localColumn;
+    __local float submatrixA[tileSize][tileSize];
+    __local float submatrixB[tileSize][tileSize];
+    float resultElements[workPerThread];
+    for (unsigned int i = 0; i < workPerThread; i++) {
+        resultElements[i] = 0.0f;
+    }
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned int tiledRow = tileSize * tile + localRow;
+        const unsigned int tiledColumn = tileSize * tile + localColumn;
+        for (unsigned int i = 0; i < workPerThread; i++) {
+            submatrixA[localRow][localColumn + i * maxLocalColumn] = a[globalRow * kDimension + tiledColumn + i * maxLocalColumn];
+            submatrixB[localRow][localColumn + i * maxLocalColumn] = b[tiledRow * nDimension + globalColumn + i * maxLocalColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned int k = 0; k < tileSize; k++) {
+            const float submatrixElement = submatrixA[localRow][k];
+            for (unsigned int i = 0; i < workPerThread; i++) {
+                resultElements[i] += submatrixElement * submatrixB[k][localColumn + i * maxLocalColumn];
+            }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    for (unsigned int i = 0; i < workPerThread; i++) {
+        result[globalRow * nDimension + globalColumn + i * maxLocalColumn] = resultElements[i];
+    }
+}

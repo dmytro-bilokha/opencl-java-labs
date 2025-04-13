@@ -114,6 +114,16 @@ public class Platform implements AutoCloseable {
                 tmpBufferMemSeg);
     }
 
+    public void setKernelArgument(Kernel kernel, int argumentIndex, int argument) {
+        tmpBufferMemSeg.set(ValueLayout.JAVA_INT, 0, argument);
+        MethodBinding.invokeClMethod(
+                MethodBinding.SET_KERNEL_ARG_HANDLE,
+                kernel.getKernelMemSeg(),
+                argumentIndex,
+                ValueLayout.JAVA_INT.byteSize(),
+                tmpBufferMemSeg);
+    }
+
     public PlatformBuffer createBuffer(long byteSize, DeviceMemoryAccess deviceAccess, HostMemoryAccess hostAccess) {
         var bufferMemSeg = MethodBinding.invokeMemSegClMethod(
                 errorCodeMemSeg,

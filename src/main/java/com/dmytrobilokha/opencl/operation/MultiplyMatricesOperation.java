@@ -13,7 +13,8 @@ public class MultiplyMatricesOperation {
     private final Platform platform;
     private final Flavor flavor;
     private final Kernel mainKernel;
-    private long[] workSize;
+    private long[] localWorkSize;
+    private long[] globalWorkSize;
 
     private MultiplyMatricesOperation(Flavor flavor, Platform platform) {
         this.flavor = flavor;
@@ -35,23 +36,37 @@ public class MultiplyMatricesOperation {
         platform.setKernelArgument(mainKernel, 0, a);
         platform.setKernelArgument(mainKernel, 1, b);
         platform.setKernelArgument(mainKernel, 2, result);
-        platform.setKernelArgument(mainKernel, 3, mDimension);
-        platform.setKernelArgument(mainKernel, 4, kDimension);
-        platform.setKernelArgument(mainKernel, 5, nDimension);
-        if (flavor == Flavor.FLOAT_N) {
-            workSize = new long[]{mDimension, nDimension};
+        if (flavor == Flavor.FLOAT_TILE_32MI || flavor == Flavor.FLOAT_TILE_32I) {
+            platform.setKernelArgument(mainKernel, 3, (int) mDimension);
+            platform.setKernelArgument(mainKernel, 4, (int) kDimension);
+            platform.setKernelArgument(mainKernel, 5, (int) nDimension);
         } else {
-            workSize = new long[]{nDimension, mDimension};
+            platform.setKernelArgument(mainKernel, 3, mDimension);
+            platform.setKernelArgument(mainKernel, 4, kDimension);
+            platform.setKernelArgument(mainKernel, 5, nDimension);
+        }
+        switch (flavor) {
+            case FLOAT_N -> {
+                globalWorkSize = new long[]{mDimension, nDimension};
+                localWorkSize = new long[]{32L, 32L};
+            }
+            case FLOAT_NO -> {
+                globalWorkSize = new long[]{nDimension, mDimension};
+                localWorkSize = new long[]{32L, 32L};
+            }
+            case FLOAT_TILE_32, FLOAT_TILE_32I -> {
+                globalWorkSize = new long[]{nDimension, mDimension};
+                localWorkSize = new long[]{32L, 32L};
+            }
+            case FLOAT_TILE_32M, FLOAT_TILE_32MI -> {
+                globalWorkSize = new long[]{nDimension / 8, mDimension};
+                localWorkSize = new long[]{32L / 8L, 32L};
+            }
         }
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
-        Event mainKernelEvent;
-        if (flavor == Flavor.FLOAT_TILE_32) {
-            mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, new long[]{32, 32}, workSize, waitForEvents);
-        } else {
-            mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, workSize, waitForEvents);
-        }
+        Event mainKernelEvent = device.enqueueNdRangeKernel(mainKernel, localWorkSize, globalWorkSize, waitForEvents);
         return Set.of(mainKernelEvent);
     }
 
@@ -59,6 +74,9 @@ public class MultiplyMatricesOperation {
         FLOAT_N("multiplyMatricesNaive", 1),
         FLOAT_NO("multiplyMatricesNaiveO", 1),
         FLOAT_TILE_32("multiplyMatricesTile32", 1),
+        FLOAT_TILE_32I("multiplyMatricesTile32i", 1),
+        FLOAT_TILE_32M("multiplyMatricesTile32M", 1),
+        FLOAT_TILE_32MI("multiplyMatricesTile32Mi", 1),
         ;
 
         final String kernelName;

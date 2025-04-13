@@ -20,7 +20,8 @@ public class MultiplyMatricesPerformanceVerifier implements PerformanceVerifier 
             new MatricesMultiplicationSize(64, 64, 64),
             new MatricesMultiplicationSize(128, 128, 128),
             new MatricesMultiplicationSize(256, 256, 256),
-            new MatricesMultiplicationSize(512, 512, 512)
+            new MatricesMultiplicationSize(512, 512, 512),
+            new MatricesMultiplicationSize(1024, 1024, 1024)
     );
 
     @Override

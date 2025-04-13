@@ -230,6 +230,9 @@ public class Device {
             long[] globalWorkSize,
             Set<Event> eventsToWaitFor
     ) {
+        if (localWorkSize == null) {
+            return enqueueNdRangeKernel(kernel, globalWorkSize, eventsToWaitFor);
+        }
         if (localWorkSize.length != globalWorkSize.length) {
             throw new OpenClRuntimeException(
                     "Length of local and global work sizes should be the same, but got localWorkSize.length="

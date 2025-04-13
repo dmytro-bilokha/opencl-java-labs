@@ -36,33 +36,11 @@ public class MultiplyMatricesOperation {
         platform.setKernelArgument(mainKernel, 0, a);
         platform.setKernelArgument(mainKernel, 1, b);
         platform.setKernelArgument(mainKernel, 2, result);
-        if (flavor == Flavor.FLOAT_TILE_32MI || flavor == Flavor.FLOAT_TILE_32I) {
-            platform.setKernelArgument(mainKernel, 3, (int) mDimension);
-            platform.setKernelArgument(mainKernel, 4, (int) kDimension);
-            platform.setKernelArgument(mainKernel, 5, (int) nDimension);
-        } else {
-            platform.setKernelArgument(mainKernel, 3, mDimension);
-            platform.setKernelArgument(mainKernel, 4, kDimension);
-            platform.setKernelArgument(mainKernel, 5, nDimension);
-        }
-        switch (flavor) {
-            case FLOAT_N -> {
-                globalWorkSize = new long[]{mDimension, nDimension};
-                localWorkSize = new long[]{32L, 32L};
-            }
-            case FLOAT_NO -> {
-                globalWorkSize = new long[]{nDimension, mDimension};
-                localWorkSize = new long[]{32L, 32L};
-            }
-            case FLOAT_TILE_32, FLOAT_TILE_32I -> {
-                globalWorkSize = new long[]{nDimension, mDimension};
-                localWorkSize = new long[]{32L, 32L};
-            }
-            case FLOAT_TILE_32M, FLOAT_TILE_32MI -> {
-                globalWorkSize = new long[]{nDimension / 8, mDimension};
-                localWorkSize = new long[]{32L / 8L, 32L};
-            }
-        }
+        platform.setKernelArgument(mainKernel, 3, mDimension);
+        platform.setKernelArgument(mainKernel, 4, kDimension);
+        platform.setKernelArgument(mainKernel, 5, nDimension);
+        globalWorkSize = new long[]{mDimension / flavor.vectorWidth, nDimension};
+        localWorkSize = flavor.tileSize == null ? null : new long[]{flavor.tileSize / flavor.vectorWidth, flavor.tileSize};
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
@@ -71,19 +49,21 @@ public class MultiplyMatricesOperation {
     }
 
     public enum Flavor {
-        FLOAT_N("multiplyMatricesNaive", 1),
-        FLOAT_NO("multiplyMatricesNaiveO", 1),
-        FLOAT_TILE_32("multiplyMatricesTile32", 1),
-        FLOAT_TILE_32I("multiplyMatricesTile32i", 1),
-        FLOAT_TILE_32M("multiplyMatricesTile32M", 1),
-        FLOAT_TILE_32MI("multiplyMatricesTile32Mi", 1),
+        FLOAT_SIMPLE("multiplyMatricesSimple", 32, 1),
+        FLOAT_TILE_32("multiplyMatricesTile32", 32, 1),
+        FLOAT_TILE_16("multiplyMatricesTile16", 16, 1),
+        FLOAT_TILE_32W8("multiplyMatricesTile32W8", 32, 8),
+        FLOAT_TILE_32W4("multiplyMatricesTile32W4", 32, 4),
+        FLOAT_TILE_16W4("multiplyMatricesTile16W4", 16, 4),
         ;
 
         final String kernelName;
+        final Integer tileSize;
         final int vectorWidth;
 
-        Flavor(String kernelName, int vectorWidth) {
+        Flavor(String kernelName, Integer tileSize, int vectorWidth) {
             this.kernelName = kernelName;
+            this.tileSize = tileSize;
             this.vectorWidth = vectorWidth;
         }
     }

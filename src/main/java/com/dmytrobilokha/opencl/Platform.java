@@ -10,6 +10,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Platform implements AutoCloseable {
 
@@ -235,7 +236,8 @@ public class Platform implements AutoCloseable {
                 throw new OpenClRuntimeException(
                         "Failed to build the program" + System.lineSeparator()
                         + devices.stream()
-                                .map(d -> d.getName() + " build log:" + System.lineSeparator() + fetchProgramBuildLog(d)),
+                                .map(d -> d.getName() + " build log:" + System.lineSeparator() + fetchProgramBuildLog(d))
+                                .collect(Collectors.joining(System.lineSeparator())),
                         ReturnValue.CL_BUILD_PROGRAM_FAILURE,
                         e
                 );

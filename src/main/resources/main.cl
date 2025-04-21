@@ -350,3 +350,40 @@ __kernel void multiplyMatricesTile16W4(
         result[globalRow * nDimension + globalColumn + i * maxLocalColumn] = resultElements[i];
     }
 }
+
+__kernel void multiplyMatricesTile32V4(
+        __global const float4* a,
+        __global const float4* b,
+        __global float4* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned int vectorWidth = 4;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / vectorWidth;
+    const unsigned int localRow = get_local_id(1);
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned int globalColumn = maxLocalColumn * get_group_id(0) + localColumn;
+    __local float4 submatrixA[tileSize][maxLocalColumn];
+    __local float4 submatrixB[tileSize][maxLocalColumn];
+    float4 resultElements = (float4) (0.0f);
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned int tiledRow = tileSize * tile + localRow;
+        const unsigned int tiledColumn = maxLocalColumn * tile + localColumn;
+        submatrixA[localRow][localColumn] = a[globalRow * kDimension / vectorWidth + tiledColumn];
+        submatrixB[localRow][localColumn] = b[tiledRow * nDimension / vectorWidth + globalColumn];
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned int v = 0; v < maxLocalColumn; v++) {
+            const float4 vectorA = submatrixA[localRow][v];
+            resultElements += vectorA.s0 * submatrixB[vectorWidth * v][localColumn];
+            resultElements += vectorA.s1 * submatrixB[vectorWidth * v + 1][localColumn];
+            resultElements += vectorA.s2 * submatrixB[vectorWidth * v + 2][localColumn];
+            resultElements += vectorA.s3 * submatrixB[vectorWidth * v + 3][localColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    result[globalRow * nDimension / vectorWidth + globalColumn] = resultElements;
+}

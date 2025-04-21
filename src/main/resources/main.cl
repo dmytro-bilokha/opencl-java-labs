@@ -387,3 +387,44 @@ __kernel void multiplyMatricesTile32V4(
     }
     result[globalRow * nDimension / vectorWidth + globalColumn] = resultElements;
 }
+
+__kernel void multiplyMatricesTile32V8(
+        __global const float8* a,
+        __global const float8* b,
+        __global float8* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned int vectorWidth = 8;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / vectorWidth;
+    const unsigned int localRow = get_local_id(1);
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + localRow;
+    const unsigned int globalColumn = maxLocalColumn * get_group_id(0) + localColumn;
+    __local float8 submatrixA[tileSize][maxLocalColumn];
+    __local float8 submatrixB[tileSize][maxLocalColumn];
+    float8 resultElements = (float8) (0.0f);
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        const unsigned int tiledRow = tileSize * tile + localRow;
+        const unsigned int tiledColumn = maxLocalColumn * tile + localColumn;
+        submatrixA[localRow][localColumn] = a[globalRow * kDimension / vectorWidth + tiledColumn];
+        submatrixB[localRow][localColumn] = b[tiledRow * nDimension / vectorWidth + globalColumn];
+        barrier(CLK_LOCAL_MEM_FENCE);
+        for (unsigned int v = 0; v < maxLocalColumn; v++) {
+            const float8 vectorA = submatrixA[localRow][v];
+            resultElements += vectorA.s0 * submatrixB[vectorWidth * v][localColumn];
+            resultElements += vectorA.s1 * submatrixB[vectorWidth * v + 1][localColumn];
+            resultElements += vectorA.s2 * submatrixB[vectorWidth * v + 2][localColumn];
+            resultElements += vectorA.s3 * submatrixB[vectorWidth * v + 3][localColumn];
+            resultElements += vectorA.s4 * submatrixB[vectorWidth * v + 4][localColumn];
+            resultElements += vectorA.s5 * submatrixB[vectorWidth * v + 5][localColumn];
+            resultElements += vectorA.s6 * submatrixB[vectorWidth * v + 6][localColumn];
+            resultElements += vectorA.s7 * submatrixB[vectorWidth * v + 7][localColumn];
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+    result[globalRow * nDimension / vectorWidth + globalColumn] = resultElements;
+}

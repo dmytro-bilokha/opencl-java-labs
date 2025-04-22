@@ -39,8 +39,10 @@ public class MultiplyMatricesOperation {
         platform.setKernelArgument(mainKernel, 3, mDimension);
         platform.setKernelArgument(mainKernel, 4, kDimension);
         platform.setKernelArgument(mainKernel, 5, nDimension);
-        globalWorkSize = new long[]{mDimension / flavor.vectorWidth, nDimension};
-        localWorkSize = flavor.tileSize == null ? null : new long[]{flavor.tileSize / flavor.vectorWidth, flavor.tileSize};
+        globalWorkSize = new long[]{mDimension / flavor.vectorWidth, nDimension / flavor.workHeight};
+        localWorkSize = flavor.tileSize == null
+                ? null
+                : new long[]{flavor.tileSize / flavor.vectorWidth, flavor.tileSize / flavor.workHeight};
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
@@ -49,24 +51,27 @@ public class MultiplyMatricesOperation {
     }
 
     public enum Flavor {
-        FLOAT_SIMPLE("multiplyMatricesSimple", 32, 1),
-        FLOAT_TILE_32("multiplyMatricesTile32", 32, 1),
-        FLOAT_TILE_16("multiplyMatricesTile16", 16, 1),
-        FLOAT_TILE_32W8("multiplyMatricesTile32W8", 32, 8),
-        FLOAT_TILE_32W4("multiplyMatricesTile32W4", 32, 4),
-        FLOAT_TILE_16W4("multiplyMatricesTile16W4", 16, 4),
-        FLOAT_TILE_32V4("multiplyMatricesTile32V4", 32, 4),
-        FLOAT_TILE_32V8("multiplyMatricesTile32V8", 32, 8),
+        FLOAT_SIMPLE("multiplyMatricesSimple", 32, 1, 1),
+        FLOAT_TILE_32("multiplyMatricesTile32", 32, 1, 1),
+        FLOAT_TILE_16("multiplyMatricesTile16", 16, 1, 1),
+        FLOAT_TILE_32W8("multiplyMatricesTile32W8", 32, 8, 1),
+        FLOAT_TILE_32W4("multiplyMatricesTile32W4", 32, 4, 1),
+        FLOAT_TILE_16W4("multiplyMatricesTile16W4", 16, 4, 1),
+        FLOAT_TILE_32V4("multiplyMatricesTile32V4", 32, 4, 1),
+        FLOAT_TILE_32V8("multiplyMatricesTile32V8", 32, 8, 1),
+        FLOAT_TILE_32V4H2("multiplyMatricesTile32V4H2", 32, 4, 2),
         ;
 
         final String kernelName;
         final Integer tileSize;
         final int vectorWidth;
+        final int workHeight;
 
-        Flavor(String kernelName, Integer tileSize, int vectorWidth) {
+        Flavor(String kernelName, Integer tileSize, int vectorWidth, int workHeight) {
             this.kernelName = kernelName;
             this.tileSize = tileSize;
             this.vectorWidth = vectorWidth;
+            this.workHeight = workHeight;
         }
     }
 

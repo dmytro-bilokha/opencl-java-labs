@@ -60,6 +60,7 @@ public class MultiplyMatricesOperation {
         FLOAT_TILE_32V4("multiplyMatricesTile32V4", 32, 4, 1),
         FLOAT_TILE_32V8("multiplyMatricesTile32V8", 32, 8, 1),
         FLOAT_TILE_32V4H2("multiplyMatricesTile32V4H2", 32, 4, 2),
+        FLOAT_TILE_32V4H4("multiplyMatricesTile32V4H4", 32, 4, 4),
         ;
 
         final String kernelName;

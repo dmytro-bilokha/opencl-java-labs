@@ -21,7 +21,8 @@ public class MultiplyMatricesPerformanceVerifier implements PerformanceVerifier 
             new MatricesMultiplicationSize(128, 128, 128),
             new MatricesMultiplicationSize(256, 256, 256),
             new MatricesMultiplicationSize(512, 512, 512),
-            new MatricesMultiplicationSize(1024, 1024, 1024)
+            new MatricesMultiplicationSize(1024, 1024, 1024),
+            new MatricesMultiplicationSize(2048, 2048, 2048)
     );
 
     @Override
@@ -32,7 +33,7 @@ public class MultiplyMatricesPerformanceVerifier implements PerformanceVerifier 
             var verificationMatrixB = FloatMatrix.ofUniRandoms(size.kDimension(), size.nDimension());
             long cpuNanoTime = determineCpuPerformance(verificationMatrixA, verificationMatrixB);
             long numberOfOperations = size.mDimension() * size.nDimension() * (2L * size.kDimension() - 1);
-            long cpuFlops = numberOfOperations * 1_000_000_000 / cpuNanoTime;
+            long cpuFlops = PerformanceVerificationUtil.calculateFlops(numberOfOperations, cpuNanoTime);
             result.add(new PerformanceMeasurement(size.toString(),"CPU", cpuFlops));
             MemoryMatrixFactory matrixFactory = MemoryMatrixFactory.newInstance();
             var matrixA = matrixFactory.createFloatMatrix(size.mDimension(), size.kDimension());

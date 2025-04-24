@@ -2,6 +2,7 @@ package com.dmytrobilokha.opencl.verification.performance;
 
 import com.dmytrobilokha.opencl.ProfilingInfo;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,7 +28,14 @@ public final class PerformanceVerificationUtil {
     }
 
     public static long calculateFlops(long numberOfOperations, List<ProfilingInfo> profilingInfos) {
-        return numberOfOperations * 1_000_000_000 / calculateTotalDuration(profilingInfos);
+        return calculateFlops(numberOfOperations, calculateTotalDuration(profilingInfos));
+    }
+
+    public static long calculateFlops(long numberOfOperations, long nanoDuration) {
+        return BigInteger.valueOf(numberOfOperations)
+                .multiply(BigInteger.valueOf(1_000_000_000))
+                .divide(BigInteger.valueOf(nanoDuration))
+                .longValueExact();
     }
 
     public static PerformanceMeasurement createMeasurement(

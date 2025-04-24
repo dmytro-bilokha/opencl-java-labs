@@ -59,6 +59,7 @@ public class MultiplyMatricesOperation {
         FLOAT_TILE_16W4("multiplyMatricesTile16W4", 16, 4, 1),
         FLOAT_TILE_32V4("multiplyMatricesTile32V4", 32, 4, 1),
         FLOAT_TILE_32V8("multiplyMatricesTile32V8", 32, 8, 1),
+        FLOAT_TILE_32V8H2("multiplyMatricesTile32V8H2", 32, 8, 2),
         FLOAT_TILE_32V4H2("multiplyMatricesTile32V4H2", 32, 4, 2),
         FLOAT_TILE_32V4H4("multiplyMatricesTile32V4H4", 32, 4, 4),
         FLOAT_TILE_32V4H8("multiplyMatricesTile32V4H8", 32, 4, 8),

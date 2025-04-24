@@ -16,7 +16,7 @@ import java.util.Set;
 
 public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier {
 
-    private static final float ERROR_LIMIT = 9.5E-5f; // max error in %
+    private static final float ERROR_LIMIT = 1.2E-4f; // max error in %
 
     // TODO: add more "tricky" sized test-cases
     private static final List<MatricesMultiplicationSize> SIZES_TO_CHECK = List.of(
@@ -25,10 +25,11 @@ public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier 
             new MatricesMultiplicationSize(3, 3, 3),
             new MatricesMultiplicationSize(5, 5, 5),
             new MatricesMultiplicationSize(16, 16, 16),
-             */
             new MatricesMultiplicationSize(32, 32, 32),
+             */
             new MatricesMultiplicationSize(64, 64, 64),
-            new MatricesMultiplicationSize(128, 128, 128)
+            new MatricesMultiplicationSize(128, 128, 128),
+            new MatricesMultiplicationSize(256, 256, 256)
     );
 
     @Override

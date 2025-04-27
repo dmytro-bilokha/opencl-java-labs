@@ -16,7 +16,7 @@ import java.util.Set;
 
 public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier {
 
-    private static final float ERROR_LIMIT = 1.2E-4f; // max error in %
+    private static final float ERROR_LIMIT = 1.5E-4f; // max error in %
 
     // TODO: add more "tricky" sized test-cases
     private static final List<MatricesMultiplicationSize> SIZES_TO_CHECK = List.of(

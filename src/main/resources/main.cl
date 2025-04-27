@@ -531,6 +531,59 @@ __kernel void multiplyMatricesTile32V4H2(
     result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
 }
 
+__kernel void multiplyMatricesTile32V4H2P(
+        __global const float4* a,
+        __global const float4* b,
+        __global float4* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned int workHeight = 2;
+    const unsigned int vectorWidth = 4;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / vectorWidth;
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + get_local_id(1) * workHeight;
+    const unsigned int localRow = globalRow % tileSize;
+    const unsigned int globalColumn = maxLocalColumn * get_group_id(0) + localColumn;
+    __local float4 submatrixA[2][tileSize * maxLocalColumn];
+    __local float4 submatrixB[2][tileSize * maxLocalColumn];
+    float4 resultElements0 = (float4) (0.0f);
+    float4 resultElements1 = (float4) (0.0f);
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    submatrixA[0][localRow * maxLocalColumn + localColumn] = a[globalRow * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + localColumn];
+    submatrixB[0][localRow * maxLocalColumn + localColumn] = b[localRow * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 1) * maxLocalColumn + localColumn] = b[(localRow + 1) * nDimension / vectorWidth + globalColumn];
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        barrier(CLK_LOCAL_MEM_FENCE);
+        unsigned int nextTile = tile + 1;
+        if (nextTile < numberOfTiles) {
+            const unsigned int tiledRow = tileSize * nextTile + localRow;
+            const unsigned int tiledColumn = maxLocalColumn * nextTile + localColumn;
+            submatrixA[nextTile % 2][localRow * maxLocalColumn + localColumn] = a[globalRow * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + tiledColumn];
+            submatrixB[nextTile % 2][localRow * maxLocalColumn + localColumn] = b[tiledRow * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = b[(tiledRow + 1) * nDimension / vectorWidth + globalColumn];
+        }
+        for (unsigned int v = 0; v < maxLocalColumn; v++) {
+            const float4 vectorA0 = submatrixA[tile % 2][localRow * maxLocalColumn + v];
+            const float4 vectorA1 = submatrixA[tile % 2][(localRow + 1) * maxLocalColumn + v];
+            resultElements0 += vectorA0.s0 * submatrixB[tile % 2][vectorWidth * v * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s0 * submatrixB[tile % 2][vectorWidth * v * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+        }
+    }
+    result[globalRow * nDimension / vectorWidth + globalColumn] = resultElements0;
+    result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
+}
+
 __kernel void multiplyMatricesTile32V4H4(
         __global const float4* a,
         __global const float4* b,

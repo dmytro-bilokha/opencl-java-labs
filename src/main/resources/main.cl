@@ -484,6 +484,157 @@ __kernel void multiplyMatricesTile32V8H2(
     result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
 }
 
+__kernel void multiplyMatricesTile32V8H8P(
+        __global const float8* a,
+        __global const float8* b,
+        __global float8* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned int workHeight = 8;
+    const unsigned int vectorWidth = 8;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / vectorWidth;
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + get_local_id(1) * workHeight;
+    const unsigned int localRow = globalRow % tileSize;
+    const unsigned int globalColumn = maxLocalColumn * get_group_id(0) + localColumn;
+    __local float8 submatrixA[2][tileSize * maxLocalColumn];
+    __local float8 submatrixB[2][tileSize * maxLocalColumn];
+    float8 resultElements0 = (float8) (0.0f);
+    float8 resultElements1 = (float8) (0.0f);
+    float8 resultElements2 = (float8) (0.0f);
+    float8 resultElements3 = (float8) (0.0f);
+    float8 resultElements4 = (float8) (0.0f);
+    float8 resultElements5 = (float8) (0.0f);
+    float8 resultElements6 = (float8) (0.0f);
+    float8 resultElements7 = (float8) (0.0f);
+    submatrixA[0][(localRow + 0) * maxLocalColumn + localColumn] = a[(globalRow + 0) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 2) * maxLocalColumn + localColumn] = a[(globalRow + 2) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 3) * maxLocalColumn + localColumn] = a[(globalRow + 3) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 4) * maxLocalColumn + localColumn] = a[(globalRow + 4) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 5) * maxLocalColumn + localColumn] = a[(globalRow + 5) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 6) * maxLocalColumn + localColumn] = a[(globalRow + 6) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 7) * maxLocalColumn + localColumn] = a[(globalRow + 7) * kDimension / vectorWidth + localColumn];
+    submatrixB[0][(localRow + 0) * maxLocalColumn + localColumn] = b[(localRow + 0) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 1) * maxLocalColumn + localColumn] = b[(localRow + 1) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 2) * maxLocalColumn + localColumn] = b[(localRow + 2) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 3) * maxLocalColumn + localColumn] = b[(localRow + 3) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 4) * maxLocalColumn + localColumn] = b[(localRow + 4) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 5) * maxLocalColumn + localColumn] = b[(localRow + 5) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 6) * maxLocalColumn + localColumn] = b[(localRow + 6) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 7) * maxLocalColumn + localColumn] = b[(localRow + 7) * nDimension / vectorWidth + globalColumn];
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        barrier(CLK_LOCAL_MEM_FENCE);
+        unsigned int nextTile = tile + 1;
+        if (nextTile < numberOfTiles) {
+            const unsigned int tiledRow = tileSize * nextTile + localRow;
+            const unsigned int tiledColumn = maxLocalColumn * nextTile + localColumn;
+            submatrixA[nextTile % 2][(localRow + 0) * maxLocalColumn + localColumn] = a[(globalRow + 0) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 2) * maxLocalColumn + localColumn] = a[(globalRow + 2) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 3) * maxLocalColumn + localColumn] = a[(globalRow + 3) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 4) * maxLocalColumn + localColumn] = a[(globalRow + 4) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 5) * maxLocalColumn + localColumn] = a[(globalRow + 5) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 6) * maxLocalColumn + localColumn] = a[(globalRow + 6) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 7) * maxLocalColumn + localColumn] = a[(globalRow + 7) * kDimension / vectorWidth + tiledColumn];
+            submatrixB[nextTile % 2][(localRow + 0) * maxLocalColumn + localColumn] = b[(tiledRow + 0) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = b[(tiledRow + 1) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 2) * maxLocalColumn + localColumn] = b[(tiledRow + 2) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 3) * maxLocalColumn + localColumn] = b[(tiledRow + 3) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 4) * maxLocalColumn + localColumn] = b[(tiledRow + 4) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 5) * maxLocalColumn + localColumn] = b[(tiledRow + 5) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 6) * maxLocalColumn + localColumn] = b[(tiledRow + 6) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 7) * maxLocalColumn + localColumn] = b[(tiledRow + 7) * nDimension / vectorWidth + globalColumn];
+        }
+        for (unsigned int v = 0; v < maxLocalColumn; v++) {
+            const float8 vectorA0 = submatrixA[tile % 2][(localRow + 0) * maxLocalColumn + v];
+            const float8 vectorA1 = submatrixA[tile % 2][(localRow + 1) * maxLocalColumn + v];
+            const float8 vectorA2 = submatrixA[tile % 2][(localRow + 2) * maxLocalColumn + v];
+            const float8 vectorA3 = submatrixA[tile % 2][(localRow + 3) * maxLocalColumn + v];
+            const float8 vectorA4 = submatrixA[tile % 2][(localRow + 4) * maxLocalColumn + v];
+            const float8 vectorA5 = submatrixA[tile % 2][(localRow + 5) * maxLocalColumn + v];
+            const float8 vectorA6 = submatrixA[tile % 2][(localRow + 6) * maxLocalColumn + v];
+            const float8 vectorA7 = submatrixA[tile % 2][(localRow + 7) * maxLocalColumn + v];
+            resultElements0 += vectorA0.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s4 * submatrixB[tile % 2][(vectorWidth * v + 4) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s5 * submatrixB[tile % 2][(vectorWidth * v + 5) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s6 * submatrixB[tile % 2][(vectorWidth * v + 6) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s7 * submatrixB[tile % 2][(vectorWidth * v + 7) * maxLocalColumn + localColumn];
+        }
+    }
+    result[(globalRow + 0) * nDimension / vectorWidth + globalColumn] = resultElements0;
+    result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
+    result[(globalRow + 2) * nDimension / vectorWidth + globalColumn] = resultElements2;
+    result[(globalRow + 3) * nDimension / vectorWidth + globalColumn] = resultElements3;
+    result[(globalRow + 4) * nDimension / vectorWidth + globalColumn] = resultElements4;
+    result[(globalRow + 5) * nDimension / vectorWidth + globalColumn] = resultElements5;
+    result[(globalRow + 6) * nDimension / vectorWidth + globalColumn] = resultElements6;
+    result[(globalRow + 7) * nDimension / vectorWidth + globalColumn] = resultElements7;
+}
+
 __kernel void multiplyMatricesTile32V4H2(
         __global const float4* a,
         __global const float4* b,
@@ -741,6 +892,125 @@ __kernel void multiplyMatricesTile32V4H8(
         barrier(CLK_LOCAL_MEM_FENCE);
     }
     result[globalRow * nDimension / vectorWidth + globalColumn] = resultElements0;
+    result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
+    result[(globalRow + 2) * nDimension / vectorWidth + globalColumn] = resultElements2;
+    result[(globalRow + 3) * nDimension / vectorWidth + globalColumn] = resultElements3;
+    result[(globalRow + 4) * nDimension / vectorWidth + globalColumn] = resultElements4;
+    result[(globalRow + 5) * nDimension / vectorWidth + globalColumn] = resultElements5;
+    result[(globalRow + 6) * nDimension / vectorWidth + globalColumn] = resultElements6;
+    result[(globalRow + 7) * nDimension / vectorWidth + globalColumn] = resultElements7;
+}
+
+__kernel void multiplyMatricesTile32V4H8P(
+        __global const float4* a,
+        __global const float4* b,
+        __global float4* result,
+        const unsigned long mDimension,
+        const unsigned long kDimension,
+        const unsigned long nDimension
+) {
+    const unsigned int workHeight = 8;
+    const unsigned int vectorWidth = 4;
+    const unsigned int tileSize = 32;
+    const unsigned int maxLocalColumn = tileSize / vectorWidth;
+    const unsigned int localColumn = get_local_id(0);
+    const unsigned int globalRow = tileSize * get_group_id(1) + get_local_id(1) * workHeight;
+    const unsigned int localRow = globalRow % tileSize;
+    const unsigned int globalColumn = maxLocalColumn * get_group_id(0) + localColumn;
+    __local float4 submatrixA[2][tileSize * maxLocalColumn];
+    __local float4 submatrixB[2][tileSize * maxLocalColumn];
+    float4 resultElements0 = (float4) (0.0f);
+    float4 resultElements1 = (float4) (0.0f);
+    float4 resultElements2 = (float4) (0.0f);
+    float4 resultElements3 = (float4) (0.0f);
+    float4 resultElements4 = (float4) (0.0f);
+    float4 resultElements5 = (float4) (0.0f);
+    float4 resultElements6 = (float4) (0.0f);
+    float4 resultElements7 = (float4) (0.0f);
+    submatrixA[0][(localRow + 0) * maxLocalColumn + localColumn] = a[(globalRow + 0) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 2) * maxLocalColumn + localColumn] = a[(globalRow + 2) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 3) * maxLocalColumn + localColumn] = a[(globalRow + 3) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 4) * maxLocalColumn + localColumn] = a[(globalRow + 4) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 5) * maxLocalColumn + localColumn] = a[(globalRow + 5) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 6) * maxLocalColumn + localColumn] = a[(globalRow + 6) * kDimension / vectorWidth + localColumn];
+    submatrixA[0][(localRow + 7) * maxLocalColumn + localColumn] = a[(globalRow + 7) * kDimension / vectorWidth + localColumn];
+    submatrixB[0][(localRow + 0) * maxLocalColumn + localColumn] = b[(localRow + 0) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 1) * maxLocalColumn + localColumn] = b[(localRow + 1) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 2) * maxLocalColumn + localColumn] = b[(localRow + 2) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 3) * maxLocalColumn + localColumn] = b[(localRow + 3) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 4) * maxLocalColumn + localColumn] = b[(localRow + 4) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 5) * maxLocalColumn + localColumn] = b[(localRow + 5) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 6) * maxLocalColumn + localColumn] = b[(localRow + 6) * nDimension / vectorWidth + globalColumn];
+    submatrixB[0][(localRow + 7) * maxLocalColumn + localColumn] = b[(localRow + 7) * nDimension / vectorWidth + globalColumn];
+    const unsigned int numberOfTiles = kDimension / tileSize;
+    for (unsigned int tile = 0; tile < numberOfTiles; tile++) {
+        barrier(CLK_LOCAL_MEM_FENCE);
+        unsigned int nextTile = tile + 1;
+        if (nextTile < numberOfTiles) {
+            const unsigned int tiledRow = tileSize * nextTile + localRow;
+            const unsigned int tiledColumn = maxLocalColumn * nextTile + localColumn;
+            submatrixA[nextTile % 2][(localRow + 0) * maxLocalColumn + localColumn] = a[(globalRow + 0) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = a[(globalRow + 1) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 2) * maxLocalColumn + localColumn] = a[(globalRow + 2) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 3) * maxLocalColumn + localColumn] = a[(globalRow + 3) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 4) * maxLocalColumn + localColumn] = a[(globalRow + 4) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 5) * maxLocalColumn + localColumn] = a[(globalRow + 5) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 6) * maxLocalColumn + localColumn] = a[(globalRow + 6) * kDimension / vectorWidth + tiledColumn];
+            submatrixA[nextTile % 2][(localRow + 7) * maxLocalColumn + localColumn] = a[(globalRow + 7) * kDimension / vectorWidth + tiledColumn];
+            submatrixB[nextTile % 2][(localRow + 0) * maxLocalColumn + localColumn] = b[(tiledRow + 0) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 1) * maxLocalColumn + localColumn] = b[(tiledRow + 1) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 2) * maxLocalColumn + localColumn] = b[(tiledRow + 2) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 3) * maxLocalColumn + localColumn] = b[(tiledRow + 3) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 4) * maxLocalColumn + localColumn] = b[(tiledRow + 4) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 5) * maxLocalColumn + localColumn] = b[(tiledRow + 5) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 6) * maxLocalColumn + localColumn] = b[(tiledRow + 6) * nDimension / vectorWidth + globalColumn];
+            submatrixB[nextTile % 2][(localRow + 7) * maxLocalColumn + localColumn] = b[(tiledRow + 7) * nDimension / vectorWidth + globalColumn];
+        }
+        for (unsigned int v = 0; v < maxLocalColumn; v++) {
+            const float4 vectorA0 = submatrixA[tile % 2][(localRow + 0) * maxLocalColumn + v];
+            const float4 vectorA1 = submatrixA[tile % 2][(localRow + 1) * maxLocalColumn + v];
+            const float4 vectorA2 = submatrixA[tile % 2][(localRow + 2) * maxLocalColumn + v];
+            const float4 vectorA3 = submatrixA[tile % 2][(localRow + 3) * maxLocalColumn + v];
+            const float4 vectorA4 = submatrixA[tile % 2][(localRow + 4) * maxLocalColumn + v];
+            const float4 vectorA5 = submatrixA[tile % 2][(localRow + 5) * maxLocalColumn + v];
+            const float4 vectorA6 = submatrixA[tile % 2][(localRow + 6) * maxLocalColumn + v];
+            const float4 vectorA7 = submatrixA[tile % 2][(localRow + 7) * maxLocalColumn + v];
+            resultElements0 += vectorA0.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s0 * submatrixB[tile % 2][(vectorWidth * v + 0) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s1 * submatrixB[tile % 2][(vectorWidth * v + 1) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s2 * submatrixB[tile % 2][(vectorWidth * v + 2) * maxLocalColumn + localColumn];
+            resultElements0 += vectorA0.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements1 += vectorA1.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements2 += vectorA2.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements3 += vectorA3.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements4 += vectorA4.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements5 += vectorA5.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements6 += vectorA6.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+            resultElements7 += vectorA7.s3 * submatrixB[tile % 2][(vectorWidth * v + 3) * maxLocalColumn + localColumn];
+        }
+    }
+    result[(globalRow + 0) * nDimension / vectorWidth + globalColumn] = resultElements0;
     result[(globalRow + 1) * nDimension / vectorWidth + globalColumn] = resultElements1;
     result[(globalRow + 2) * nDimension / vectorWidth + globalColumn] = resultElements2;
     result[(globalRow + 3) * nDimension / vectorWidth + globalColumn] = resultElements3;

@@ -5,6 +5,7 @@ import com.dmytrobilokha.opencl.Device;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
 import com.dmytrobilokha.opencl.Platform;
+import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
 import com.dmytrobilokha.opencl.operation.MultiplyMatricesOperation;
 import com.dmytrobilokha.opencl.verification.FloatMatrix;
 import com.dmytrobilokha.opencl.verification.MatricesMultiplicationSize;
@@ -78,7 +79,15 @@ public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier 
         operation.setArguments(bufferA, bufferB, resultBuffer, size.mDimension(), size.kDimension(), size.nDimension());
         device.enqueueWriteBuffer(bufferA, matrixA);
         device.enqueueWriteBuffer(bufferB, matrixB);
-        operation.enqueue(device, Set.of());
+        try {
+            operation.enqueue(device, Set.of());
+        } catch (OpenClRuntimeException e) {
+            String message = e.getClErrorCode() == null
+                    ? e.getMessage()
+                    : e.getClErrorCode().name();
+            reportWriter.println("ERROR " + message);
+            return true;
+        }
         device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
         platform.releaseBuffer(bufferA);
         platform.releaseBuffer(bufferB);

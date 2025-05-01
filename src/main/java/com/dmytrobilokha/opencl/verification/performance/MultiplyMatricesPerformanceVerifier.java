@@ -5,6 +5,7 @@ import com.dmytrobilokha.opencl.Device;
 import com.dmytrobilokha.opencl.DeviceMemoryAccess;
 import com.dmytrobilokha.opencl.HostMemoryAccess;
 import com.dmytrobilokha.opencl.Platform;
+import com.dmytrobilokha.opencl.exception.OpenClRuntimeException;
 import com.dmytrobilokha.opencl.operation.MultiplyMatricesOperation;
 import com.dmytrobilokha.opencl.verification.FloatMatrix;
 import com.dmytrobilokha.opencl.verification.MatricesMultiplicationSize;
@@ -59,16 +60,20 @@ public class MultiplyMatricesPerformanceVerifier implements PerformanceVerifier 
             device.enqueueWriteBuffer(bufferA, matrixA);
             device.enqueueWriteBuffer(bufferB, matrixB);
             for (var flavor : MultiplyMatricesOperation.Flavor.values()) {
-                var operation = MultiplyMatricesOperation.withFlavor(flavor, platform);
-                operation.setArguments(bufferA, bufferB, resultBuffer, size.mDimension(), size.kDimension(), size.nDimension());
-                var events = operation.enqueue(device, Set.of());
-                device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
-                var profilingInfos = events
-                        .stream()
-                        .map(platform::getEventProfilingInfo)
-                        .toList();
-                result.add(PerformanceVerificationUtil.createMeasurement(
-                        size.toString(), flavor.name(), numberOfOperations, profilingInfos));
+                try {
+                    var operation = MultiplyMatricesOperation.withFlavor(flavor, platform);
+                    operation.setArguments(bufferA, bufferB, resultBuffer, size.mDimension(), size.kDimension(), size.nDimension());
+                    var events = operation.enqueue(device, Set.of());
+                    device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
+                    var profilingInfos = events
+                            .stream()
+                            .map(platform::getEventProfilingInfo)
+                            .toList();
+                    result.add(PerformanceVerificationUtil.createMeasurement(
+                            size.toString(), flavor.name(), numberOfOperations, profilingInfos));
+                } catch (OpenClRuntimeException e) {
+                    result.add(PerformanceMeasurement.ofFailure(size.toString(), flavor.name(), e));
+                }
             }
             platform.releaseBuffer(bufferA);
             platform.releaseBuffer(bufferB);

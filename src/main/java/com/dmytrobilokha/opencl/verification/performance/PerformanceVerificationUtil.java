@@ -44,7 +44,7 @@ public final class PerformanceVerificationUtil {
             long numberOfOperations,
             List<ProfilingInfo> profilingInfos
     ) {
-        return new PerformanceMeasurement(
+        return PerformanceMeasurement.ofSuccess(
                 description,
                 flavor,
                 calculateFlops(numberOfOperations, profilingInfos),

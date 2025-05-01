@@ -10,6 +10,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class PerformanceVerification {
 
@@ -88,20 +89,36 @@ public class PerformanceVerification {
                         .sorted(Comparator.comparing(PerformanceMeasurement::flavor))
                         .toList();
             } else {
-                // in non-verbose mode, show top performers ordered by performance
-                measurements = measurementsByDescription
-                        .get(description)
-                        .stream()
-                        .sorted(Comparator.comparing(PerformanceMeasurement::flops).reversed())
-                        .limit(SHOW_LIMIT)
-                        .toList();
+                // in non-verbose mode, show top performers ordered by performance and failures at the end
+                measurements = Stream.concat(
+                        measurementsByDescription
+                                .get(description)
+                                .stream()
+                                .sorted(Comparator.comparing(PerformanceMeasurement::flops).reversed())
+                                .limit(SHOW_LIMIT),
+                        measurementsByDescription
+                                .get(description)
+                                .stream()
+                                .filter(pm -> pm.exception() != null)
+                ).toList();
             }
             for (var measurement : measurements) {
-                reportWriter.println(
-                        name + " " + description + " "
-                                + measurement.flavor() + ": " + formatFlops(measurement.flops())
-                        + formatRemark(measurement.remark())
-                );
+                if (measurement.exception() == null) {
+                    reportWriter.println(
+                            name + " " + description + " "
+                                    + measurement.flavor() + ": " + formatFlops(measurement.flops())
+                                    + formatRemark(measurement.remark())
+                    );
+                } else {
+                    reportWriter.println(
+                            name + " " + description + " "
+                                    + measurement.flavor() + ": " + "FAILURE"
+                                    + formatRemark(measurement.remark())
+                    );
+                    if (verbose) {
+                        measurement.exception().printStackTrace(reportWriter);
+                    }
+                }
             }
         }
     }

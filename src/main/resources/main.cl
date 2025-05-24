@@ -160,6 +160,40 @@ __kernel void multiplyMatricesSimple(
     result[globalRow * nDimension + globalColumn] = resultElement;
 }
 
+__kernel void padRightBottom(
+        __global const float* input,
+        __global float* output,
+        const unsigned int padSize,
+        const unsigned long inputRows,
+        const unsigned long inputColumns,
+        const unsigned long outputRows,
+        const unsigned long outputColumns
+) {
+    const unsigned int row = padSize * get_group_id(1) + get_local_id(1);
+    const unsigned int column = padSize * get_group_id(0) + get_local_id(0);
+    if (row >= outputRows || column >= outputColumns) {
+        return;
+    }
+    float value;
+    if (row < inputRows && column < inputColumns) {
+        value = input[row * inputColumns + column];
+    } else {
+        value = 0.0f;
+    }
+    output[row * outputColumns + column] = value;
+}
+
+__kernel void unpadRightBottom(
+        __global const float* input,
+        __global float* output,
+        const unsigned long inputColumns,
+        const unsigned long outputColumns
+) {
+    const unsigned int row = get_global_id(1);
+    const unsigned int column = get_global_id(0);
+    output[row * outputColumns + column] = input[row * inputColumns + column];
+}
+
 __kernel void multiplyMatricesTile32(
         __global const float* a,
         __global const float* b,

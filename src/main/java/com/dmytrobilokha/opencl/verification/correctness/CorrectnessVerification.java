@@ -13,6 +13,7 @@ public class CorrectnessVerification {
             new AddMatricesCorrectnessVerifier(),
             new SigmoidElementsCorrectnessVerifier(),
             new MultiplyMatricesCorrectnessVerifier(),
+            new PaddingCorrectnessVerifier(),
     };
 
     public static void main(String[] args) {

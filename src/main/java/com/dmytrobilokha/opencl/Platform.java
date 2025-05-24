@@ -10,6 +10,7 @@ import java.lang.foreign.MemorySegment;
 import java.lang.foreign.ValueLayout;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Platform implements AutoCloseable {
@@ -144,6 +145,19 @@ public class Platform implements AutoCloseable {
             if (buffer == bufferIterator.next()) {
                 bufferIterator.remove();
                 MethodBinding.invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, buffer.getBufferMemSeg());
+                return;
+            }
+        }
+        throw new OpenClRuntimeException("Unable to release provided buffer, it doesn't belong to the platform");
+    }
+
+    public void releaseBuffers(PlatformBuffer... buffersToRelease) {
+        Set<PlatformBuffer> buffersSet = Set.of(buffersToRelease);
+        for (var bufferIterator = buffers.iterator(); bufferIterator.hasNext();) {
+            var releaseCandidateBuffer = bufferIterator.next();
+            if (buffersSet.contains(releaseCandidateBuffer)) {
+                bufferIterator.remove();
+                MethodBinding.invokeClMethod(MethodBinding.RELEASE_MEM_OBJECT_HANDLE, releaseCandidateBuffer.getBufferMemSeg());
                 return;
             }
         }

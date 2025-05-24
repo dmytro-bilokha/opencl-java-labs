@@ -86,12 +86,11 @@ public class MultiplyMatricesCorrectnessVerifier implements CorrectnessVerifier 
                     ? e.getMessage()
                     : e.getClErrorCode().name();
             reportWriter.println("ERROR " + message);
+            platform.releaseBuffers(bufferA, bufferB, resultBuffer);
             return true;
         }
         device.enqueueReadBufferToFloatMatrix(resultBuffer, resultMatrix);
-        platform.releaseBuffer(bufferA);
-        platform.releaseBuffer(bufferB);
-        platform.releaseBuffer(resultBuffer);
+        platform.releaseBuffers(bufferA, bufferB, resultBuffer);
         var verificationResult = verificationMatrixA.multiply(verificationMatrixB);
         float maxErrorPercent = CorrectnessVerificationUtil.calculateMaxErrorPercent(resultMatrix, verificationResult);
         reportWriter.println(maxErrorPercent + "%");

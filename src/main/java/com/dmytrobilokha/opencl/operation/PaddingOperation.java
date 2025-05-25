@@ -13,7 +13,6 @@ public class PaddingOperation {
     private final Flavor flavor;
     private final Platform platform;
     private final Kernel kernel;
-    private long[] localWorkSize;
     private long[] globalWorkSize;
 
     private PaddingOperation(Flavor flavor, Platform platform) {
@@ -40,31 +39,23 @@ public class PaddingOperation {
         platform.setKernelArgument(kernel, 4, outputRows);
         platform.setKernelArgument(kernel, 5, outputColumns);
         globalWorkSize = new long[]{outputColumns, outputRows};
-        localWorkSize = new long[]{flavor.tileSize, flavor.tileSize};
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
-        Event event = device.enqueueNdRangeKernel(kernel, localWorkSize, globalWorkSize, waitForEvents);
+        Event event = device.enqueueNdRangeKernel(kernel, null, globalWorkSize, waitForEvents);
         return Set.of(event);
     }
 
     public enum Flavor {
-        FLOAT_16("padRightBottom", 16),
-        FLOAT_32("padRightBottom", 32),
-        FLOAT_64("padRightBottom", 64),
+        FLOAT("padRightBottom"),
         ;
 
         final String kernelName;
-        final int tileSize;
 
-        Flavor(String kernelName, int tileSize) {
+        Flavor(String kernelName) {
             this.kernelName = kernelName;
-            this.tileSize = tileSize;
         }
 
-        public int getTileSize() {
-            return tileSize;
-        }
     }
 
 }

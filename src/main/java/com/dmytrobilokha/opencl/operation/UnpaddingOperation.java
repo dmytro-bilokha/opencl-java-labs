@@ -13,7 +13,6 @@ public class UnpaddingOperation {
     private final Flavor flavor;
     private final Platform platform;
     private final Kernel kernel;
-    private long[] localWorkSize;
     private long[] globalWorkSize;
 
     private UnpaddingOperation(Flavor flavor, Platform platform) {
@@ -37,26 +36,21 @@ public class UnpaddingOperation {
         platform.setKernelArgument(kernel, 2, inputColumns);
         platform.setKernelArgument(kernel, 3, outputColumns);
         globalWorkSize = new long[]{outputColumns, outputRows};
-        localWorkSize = new long[]{flavor.padSize, flavor.padSize};
     }
 
     public Set<Event> enqueue(Device device, Set<Event> waitForEvents) {
-        Event event = device.enqueueNdRangeKernel(kernel, localWorkSize, globalWorkSize, waitForEvents);
+        Event event = device.enqueueNdRangeKernel(kernel, null, globalWorkSize, waitForEvents);
         return Set.of(event);
     }
 
     public enum Flavor {
-        FLOAT_16("unpadRightBottom", 16),
-        FLOAT_32("unpadRightBottom", 32),
-        FLOAT_64("unpadRightBottom", 64),
+        FLOAT("unpadRightBottom"),
         ;
 
         final String kernelName;
-        final int padSize;
 
-        Flavor(String kernelName, int padSize) {
+        Flavor(String kernelName) {
             this.kernelName = kernelName;
-            this.padSize = padSize;
         }
     }
     

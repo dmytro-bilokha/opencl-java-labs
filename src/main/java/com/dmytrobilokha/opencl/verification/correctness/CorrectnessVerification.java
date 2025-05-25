@@ -14,6 +14,7 @@ public class CorrectnessVerification {
             new SigmoidElementsCorrectnessVerifier(),
             new MultiplyMatricesCorrectnessVerifier(),
             new PaddingCorrectnessVerifier(),
+            new UnpaddingCorrectnessVerifier(),
     };
 
     public static void main(String[] args) {

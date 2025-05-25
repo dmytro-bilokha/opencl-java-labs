@@ -35,11 +35,10 @@ public class PaddingOperation {
             long outputColumns) {
         platform.setKernelArgument(kernel, 0, input);
         platform.setKernelArgument(kernel, 1, output);
-        platform.setKernelArgument(kernel, 2, flavor.tileSize);
-        platform.setKernelArgument(kernel, 3, inputRows);
-        platform.setKernelArgument(kernel, 4, inputColumns);
-        platform.setKernelArgument(kernel, 5, outputRows);
-        platform.setKernelArgument(kernel, 6, outputColumns);
+        platform.setKernelArgument(kernel, 2, inputRows);
+        platform.setKernelArgument(kernel, 3, inputColumns);
+        platform.setKernelArgument(kernel, 4, outputRows);
+        platform.setKernelArgument(kernel, 5, outputColumns);
         globalWorkSize = new long[]{outputColumns, outputRows};
         localWorkSize = new long[]{flavor.tileSize, flavor.tileSize};
     }

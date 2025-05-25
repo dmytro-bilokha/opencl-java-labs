@@ -163,14 +163,13 @@ __kernel void multiplyMatricesSimple(
 __kernel void padRightBottom(
         __global const float* input,
         __global float* output,
-        const unsigned int padSize,
         const unsigned long inputRows,
         const unsigned long inputColumns,
         const unsigned long outputRows,
         const unsigned long outputColumns
 ) {
-    const unsigned int row = padSize * get_group_id(1) + get_local_id(1);
-    const unsigned int column = padSize * get_group_id(0) + get_local_id(0);
+    const unsigned int row = get_global_id(1);
+    const unsigned int column = get_global_id(0);
     if (row >= outputRows || column >= outputColumns) {
         return;
     }
